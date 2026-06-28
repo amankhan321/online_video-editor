@@ -233,7 +233,7 @@
         <div class="field" style="margin-top:10px"><p class="label">Enhance</p>
           <select id="enhance"><option value="off" selected>Off · keep original look</option><option value="subtle">Subtle pop</option><option value="punchy">Punchy</option></select></div>
         <button id="export" class="btn-primary">Export portrait clip</button>
-        <div class="runtime-note" id="runtimeNote">Compatible mode re-encodes with ffmpeg — H.264 + AAC, plays everywhere. First export loads the encoder from this site (~31First export loads the encoder (~32&nbsp;MB, once).nbsp;MB, cached after).</div>
+        <div class="runtime-note" id="runtimeNote">Compatible mode re-encodes with ffmpeg — H.264 + AAC, plays everywhere. First export loads the encoder from this site (~31&nbsp;MB, cached after).</div>
         <button id="reset" class="btn-ghost">Reset crop</button>
         <button id="newfile" class="btn-ghost">Use a different video</button>
 
@@ -320,7 +320,7 @@
 
   engineSel.addEventListener("change",()=>{
     runtimeNote.innerHTML = engineSel.value==="ffmpeg"
-      ? "Compatible mode re-encodes with ffmpeg — H.264 + AAC, plays everywhere. First export loads the encoder from this site (~31First export loads the encoder (~32&nbsp;MB, once).nbsp;MB, cached after)."
+      ? "Compatible mode re-encodes with ffmpeg — H.264 + AAC, plays everywhere. First export loads the encoder from this site (~31&nbsp;MB, cached after)."
       : "Fast mode captures in real time (about as long as the clip). Audio may be Opus, which some desktop players won't play — use Compatible if sound matters.";
   });
 
@@ -445,7 +445,7 @@
     try{ f=await loadFfmpeg(); }
     catch(e){
       encoding=false; recBadge.classList.remove("on"); exportBtn.disabled=false; exportBtn.textContent="Export portrait clip";
-      showErr("Couldn't load the ffmpeg encoder (network blocked?). Switched to Fast capture — try again.");
+      showErr("Couldn't load the ffmpeg encoder: "+((e&&e.message)||e)+". Switched to Fast capture — try again.");
       engineSel.value="recorder"; engineSel.dispatchEvent(new Event("change")); return;
     }
     setProg(2,"Encoding…");
