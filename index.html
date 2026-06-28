@@ -424,9 +424,9 @@
       const {FFmpeg}=window.FFmpegWASM; const {toBlobURL}=window.FFmpegUtil; const f=new FFmpeg();
       f.on("progress",({progress})=>{if(encoding)setProg(clamp(progress*100,1,99),"Encoding…");});
       const v=new URL("./vendor/",location.href).href;
-      // load from same-origin vendored files; blob URLs let the worker spawn without cross-origin issues
+      // self-hosted files are same-origin, so the library's own classic worker spawns fine.
+      // (Passing classWorkerURL would force a MODULE worker, where importScripts() fails.)
       await f.load({
-        classWorkerURL:await toBlobURL(v+"814.ffmpeg.js","text/javascript"),
         coreURL:await toBlobURL(v+"ffmpeg-core.js","text/javascript"),
         wasmURL:await toBlobURL(v+"ffmpeg-core.wasm","application/wasm")
       });
