@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
+<script src="https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/index.js"></script>
 <style>
   :root{
     --bg:#ffffff;--paper:#f3f4f7;--paper-2:#e9ebf0;--line:#e3e6ec;--line-2:#d2d7e0;
@@ -45,7 +47,6 @@
 
   .stage{position:relative;background:var(--paper-2);display:grid;place-items:center;min-height:320px;user-select:none;touch-action:none}
   #preview{display:block;max-width:100%;max-height:62vh}
-  /* keep the decoding video present but invisible — it's only a frame source */
   #video{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;left:-10px;top:-10px}
 
   .bracket{position:absolute;width:26px;height:26px;border:2.5px solid var(--ink);opacity:.32;pointer-events:none;z-index:3}
@@ -100,7 +101,7 @@
   .btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
   .btn-ghost{width:100%;margin-top:9px;border:1px solid var(--line-2);border-radius:11px;padding:11px;cursor:pointer;font-size:13px;color:var(--ink-soft);background:transparent}
   .btn-ghost:hover{border-color:var(--brand);color:var(--brand)}
-  .runtime-note{font-family:var(--mono);font-size:10px;color:var(--ink-faint);text-align:center;margin-top:9px;letter-spacing:.02em}
+  .runtime-note{font-family:var(--mono);font-size:10px;color:var(--ink-faint);text-align:center;margin-top:9px;letter-spacing:.02em;line-height:1.5}
 
   .progress{margin-top:14px;display:none}.progress.on{display:block}
   .bar{height:9px;border-radius:6px;background:var(--paper-2);overflow:hidden;border:1px solid var(--line)}
@@ -146,7 +147,7 @@
   <header>
     <span class="kicker"><span class="blip"></span>Reframe · runs in your browser</span>
     <h1>Turn wide footage <span class="turn">vertical</span> without the guesswork.</h1>
-    <p class="lede">Rotate a sideways clip upright, drag a crop box over the part that matters, or sit the whole frame on a blurred fill. Export clean <b>9:16, 4:5, 1:1</b> clips for Reels, Shorts, TikTok and X. <b>Nothing uploads</b> — the file never leaves your machine.</p>
+    <p class="lede">Rotate a sideways clip upright, drag a crop box over the part that matters, or sit the whole frame on a blurred fill. Export clean <b>9:16, 4:5, 1:1</b> clips with sound that actually plays. <b>Nothing uploads</b> — the file never leaves your machine.</p>
   </header>
 
   <div id="dropzone" class="drop" tabindex="0" role="button" aria-label="Choose a video file">
@@ -203,8 +204,21 @@
       </div>
 
       <div class="panel">
+        <p class="label">Orientation</p>
+        <div class="seg three" id="orient">
+          <button id="rotL"><span class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v4h4"/></svg>Left</span></button>
+          <button id="rotR"><span class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v4h-4"/></svg>Right</span></button>
+          <button id="flipH"><span class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M16 7l4 5-4 5"/><path d="M8 7l-4 5 4 5"/></svg>Flip</span></button>
+        </div>
+        <p class="note" id="rotNote">Sideways clip? Rotate it upright before you crop — rotation is baked into the export.</p>
+      </div>
+
+      <div class="panel">
         <p class="label">Export</p>
-        <div class="row2">
+        <div class="field"><p class="label">Engine</p>
+          <select id="engine"><option value="ffmpeg" selected>Compatible · H.264 + AAC</option><option value="recorder">Fast · real-time capture</option></select>
+        </div>
+        <div class="row2" style="margin-top:10px">
           <div class="field"><p class="label">Resolution</p>
             <select id="res"><option value="0">Match source</option><option value="1080">Up to 1080p</option><option value="720">Up to 720p</option></select></div>
           <div class="field"><p class="label">Quality</p>
@@ -219,7 +233,7 @@
         <div class="field" style="margin-top:10px"><p class="label">Enhance</p>
           <select id="enhance"><option value="off" selected>Off · keep original look</option><option value="subtle">Subtle pop</option><option value="punchy">Punchy</option></select></div>
         <button id="export" class="btn-primary">Export portrait clip</button>
-        <div class="runtime-note" id="runtimeNote">Export runs in real time — about as long as the clip.</div>
+        <div class="runtime-note" id="runtimeNote">Compatible mode re-encodes with ffmpeg — H.264 + AAC, plays everywhere. First export loads the encoder (~32&nbsp;MB, once).</div>
         <button id="reset" class="btn-ghost">Reset crop</button>
         <button id="newfile" class="btn-ghost">Use a different video</button>
 
@@ -231,17 +245,6 @@
           <div class="meta" id="outMeta"></div>
         </div>
       </div>
-
-      <!-- Orientation control, placed where you marked -->
-      <div class="panel">
-        <p class="label">Orientation</p>
-        <div class="seg three" id="orient">
-          <button id="rotL"><span class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v4h4"/></svg>Left</span></button>
-          <button id="rotR"><span class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v4h-4"/></svg>Right</span></button>
-          <button id="flipH"><span class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M16 7l4 5-4 5"/><path d="M8 7l-4 5 4 5"/></svg>Flip</span></button>
-        </div>
-        <p class="note" id="rotNote">Sideways clip? Rotate it upright before you crop — rotation is baked into the export.</p>
-      </div>
     </div>
   </div>
 
@@ -250,9 +253,9 @@
     <div class="steps">
       <div class="step" tabindex="0"><span class="idx">01</span><div><h3>Drop a clip</h3><p>Any video — MP4, MOV, WebM, MKV. It loads straight into the editor; nothing gets uploaded anywhere.</p></div><span class="arrow"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
       <div class="step" tabindex="0"><span class="idx">02</span><div><h3>Rotate &amp; frame</h3><p>Turn a sideways clip upright, lock a ratio, drag the crop box to the action, or switch to fit-plus-blur so nothing gets cut. Thirds guides keep your subject honest.</p></div><span class="arrow"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
-      <div class="step" tabindex="0"><span class="idx">03</span><div><h3>Export</h3><p>Pick resolution, quality, format and frame rate. By default it keeps the source pixels — no upscaling, no surprise softening — then hands you a file to download.</p></div><span class="arrow"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
+      <div class="step" tabindex="0"><span class="idx">03</span><div><h3>Export with sound</h3><p>Compatible mode encodes H.264 video and AAC audio with ffmpeg, so the clip — and its sound — plays in any app, not just a browser.</p></div><span class="arrow"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
     </div>
-    <div class="tags"><span class="tag">9:16 Reels</span><span class="tag">Shorts</span><span class="tag">TikTok</span><span class="tag">4:5 feed</span><span class="tag">1:1 grid</span><span class="tag">rotate &amp; flip</span><span class="tag">no upload</span></div>
+    <div class="tags"><span class="tag">9:16 Reels</span><span class="tag">Shorts</span><span class="tag">TikTok</span><span class="tag">4:5 feed</span><span class="tag">audio that plays</span><span class="tag">rotate &amp; flip</span><span class="tag">no upload</span></div>
   </section>
 
   <p class="footer">Built to run on plain GitHub Pages · your video stays on your device</p>
@@ -267,20 +270,21 @@
   const dimBadge=$("dimBadge"),recBadge=$("rec");
   const playBtn=$("play"),playIco=$("playIco"),seek=$("seek"),timeEl=$("time");
   const ratiosBox=$("ratios"),modeSeg=$("modeSeg"),modeNote=$("modeNote");
-  const resSel=$("res"),qualitySel=$("quality"),fmtSel=$("fmt"),fpsSel=$("fps"),enhanceSel=$("enhance");
+  const engineSel=$("engine"),resSel=$("res"),qualitySel=$("quality"),fmtSel=$("fmt"),fpsSel=$("fps"),enhanceSel=$("enhance");
   const exportBtn=$("export"),resetBtn=$("reset"),newBtn=$("newfile"),runtimeNote=$("runtimeNote");
-  const rotL=$("rotL"),rotR=$("rotR"),flipH=$("flipH");
+  const rotL=$("rotL"),rotR=$("rotR"),flipBtn=$("flipH");
   const progress=$("progress"),barFill=$("barFill"),plLabel=$("plLabel"),plPct=$("plPct");
   const result=$("result"),outVideo=$("outVideo"),dl=$("dl"),outMeta=$("outMeta"),errBox=$("err");
   const fnameEl=$("fname"),srcInfo=$("srcinfo");
 
   let ratio={w:9,h:16},mode="crop";
   let srcW=0,srcH=0,effW=0,effH=0;
-  let rotation=0,flipped=false;             // rotation in degrees (0/90/180/270)
-  let crop={x:0,y:0,w:0,h:0};               // in EFFECTIVE (rotated) pixel space
+  let rotation=0,flipped=false;
+  let crop={x:0,y:0,w:0,h:0};
   let dispScale=1,dispOffX=0,dispOffY=0;
-  let fileName="clip.mp4",recording=false,lastUrl=null,playing=false;
+  let fileName="clip.mp4",currentFile=null,recording=false,encoding=false,lastUrl=null,playing=false;
   let rotCanvas=null,rotCtx=null;
+  let ffmpeg=null,ffmpegLoading=null;
 
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const evenly=n=>{n=Math.round(n);return n%2?n+1:n;};
@@ -297,13 +301,13 @@
 
   function loadFile(f){
     if(!f.type.startsWith("video/")){showErr("That doesn't look like a video file.");return;}
-    hideErr(); fileName=f.name; fnameEl.textContent=f.name; rotation=0; flipped=false;
+    hideErr(); fileName=f.name; currentFile=f; fnameEl.textContent=f.name; rotation=0; flipped=false;
     if(lastUrl)URL.revokeObjectURL(lastUrl);
     lastUrl=URL.createObjectURL(f); video.src=lastUrl;
     video.onloadedmetadata=()=>{
       srcW=video.videoWidth; srcH=video.videoHeight; srcInfo.textContent=`${srcW}×${srcH}`;
       dropzone.classList.add("hidden"); editor.classList.remove("hidden"); result.classList.remove("on");
-      computeEff(); applyRatio(true); sizePreview(); drawPreview(); requestAnimationFrame(layout); updateRuntimeNote();
+      computeEff(); applyRatio(true); sizePreview(); drawPreview(); requestAnimationFrame(layout);
     };
     video.onloadeddata=()=>{ video.currentTime=Math.min(0.1,(video.duration||1)*0.02); };
   }
@@ -313,49 +317,31 @@
     editor.classList.add("hidden"); dropzone.classList.remove("hidden");
     fileInput.value=""; result.classList.remove("on"); progress.classList.remove("on");
   }
-  function updateRuntimeNote(){const d=video.duration||0;runtimeNote.textContent=d?`Export runs in real time — about ${fmt(d)} for this clip.`:"Export runs in real time — about as long as the clip.";}
-  video.addEventListener("durationchange",updateRuntimeNote);
 
-  // ---- effective dims (after rotation) ----
+  engineSel.addEventListener("change",()=>{
+    runtimeNote.innerHTML = engineSel.value==="ffmpeg"
+      ? "Compatible mode re-encodes with ffmpeg — H.264 + AAC, plays everywhere. First export loads the encoder (~32&nbsp;MB, once)."
+      : "Fast mode captures in real time (about as long as the clip). Audio may be Opus, which some desktop players won't play — use Compatible if sound matters.";
+  });
+
+  // ---- effective dims ----
   function computeEff(){ if(rotation===90||rotation===270){effW=srcH;effH=srcW;}else{effW=srcW;effH=srcH;} }
 
-  // ---- rotate a frame of the source video into a target ctx of size tw×th ----
   function drawRotated(tctx,tw,th){
-    const k=tw/effW;                 // uniform scale (tw:th === effW:effH)
-    const rad=rotation*Math.PI/180;
-    tctx.save();
-    tctx.translate(tw/2,th/2);
-    tctx.rotate(rad);
-    if(flipped)tctx.scale(-1,1);
-    tctx.drawImage(video,-srcW*k/2,-srcH*k/2,srcW*k,srcH*k);
-    tctx.restore();
+    const k=tw/effW, rad=rotation*Math.PI/180;
+    tctx.save(); tctx.translate(tw/2,th/2); tctx.rotate(rad); if(flipped)tctx.scale(-1,1);
+    tctx.drawImage(video,-srcW*k/2,-srcH*k/2,srcW*k,srcH*k); tctx.restore();
   }
-
-  // ---- preview ----
-  function sizePreview(){
-    if(!effW)return;
-    const cap=960, k=Math.min(1,cap/Math.max(effW,effH));
-    preview.width=Math.max(2,Math.round(effW*k)); preview.height=Math.max(2,Math.round(effH*k));
-  }
+  function sizePreview(){ if(!effW)return; const cap=960,k=Math.min(1,cap/Math.max(effW,effH)); preview.width=Math.max(2,Math.round(effW*k)); preview.height=Math.max(2,Math.round(effH*k)); }
   function drawPreview(){ if(!effW)return; pctx.clearRect(0,0,preview.width,preview.height); drawRotated(pctx,preview.width,preview.height); }
 
-  // ---- layout (effective px <-> stage px) ----
-  function layout(){
-    if(!effW)return;
-    const pr=preview.getBoundingClientRect(), sr=stage.getBoundingClientRect();
-    dispScale=pr.width/effW; dispOffX=pr.left-sr.left; dispOffY=pr.top-sr.top; updateOverlay();
-  }
+  function layout(){ if(!effW)return; const pr=preview.getBoundingClientRect(),sr=stage.getBoundingClientRect(); dispScale=pr.width/effW; dispOffX=pr.left-sr.left; dispOffY=pr.top-sr.top; updateOverlay(); }
   window.addEventListener("resize",layout);
-
   function updateOverlay(){
     if(!effW)return;
-    const blur=mode==="blur", original=ratio.w===0;
-    cropEl.style.display=blur?"none":"block";
-    cropEl.classList.toggle("locked",original);
-    if(!blur){
-      const x=dispOffX+crop.x*dispScale, y=dispOffY+crop.y*dispScale, w=crop.w*dispScale, h=crop.h*dispScale;
-      cropEl.style.left=x+"px";cropEl.style.top=y+"px";cropEl.style.width=w+"px";cropEl.style.height=h+"px";
-    }
+    const blur=mode==="blur",original=ratio.w===0;
+    cropEl.style.display=blur?"none":"block"; cropEl.classList.toggle("locked",original);
+    if(!blur){const x=dispOffX+crop.x*dispScale,y=dispOffY+crop.y*dispScale,w=crop.w*dispScale,h=crop.h*dispScale;cropEl.style.left=x+"px";cropEl.style.top=y+"px";cropEl.style.width=w+"px";cropEl.style.height=h+"px";}
     const out=outputDims(); dimBadge.textContent=`OUT ${out.w}×${out.h}`;
   }
 
@@ -367,31 +353,21 @@
     else{const cx=crop.x+crop.w/2,cy=crop.y+crop.h/2,r=fitRatioRect(ratio.w,ratio.h,effW,effH);crop={...r};crop.x=clamp(cx-crop.w/2,0,effW-crop.w);crop.y=clamp(cy-crop.h/2,0,effH-crop.h);}
     updateOverlay();
   }
-
-  // ---- drag / resize (effective space) ----
   let drag=null;
   cropEl.addEventListener("pointerdown",e=>{if(ratio.w===0||mode==="blur")return;if(e.target.classList.contains("h"))return;drag={type:"move",sx:e.clientX,sy:e.clientY,ox:crop.x,oy:crop.y};cropEl.setPointerCapture(e.pointerId);});
   cropEl.querySelectorAll(".h").forEach(hd=>hd.addEventListener("pointerdown",e=>{if(ratio.w===0||mode==="blur")return;e.stopPropagation();drag={type:"resize",corner:hd.dataset.h,sx:e.clientX,sy:e.clientY,start:{...crop}};hd.setPointerCapture(e.pointerId);}));
-  document.addEventListener("pointermove",e=>{
-    if(!drag)return;
-    const dx=(e.clientX-drag.sx)/dispScale, dy=(e.clientY-drag.sy)/dispScale;
-    if(drag.type==="move"){crop.x=clamp(drag.ox+dx,0,effW-crop.w);crop.y=clamp(drag.oy+dy,0,effH-crop.h);}else resizeCrop(drag.corner,dx,dy,drag.start);
-    updateOverlay();
-  });
+  document.addEventListener("pointermove",e=>{if(!drag)return;const dx=(e.clientX-drag.sx)/dispScale,dy=(e.clientY-drag.sy)/dispScale;if(drag.type==="move"){crop.x=clamp(drag.ox+dx,0,effW-crop.w);crop.y=clamp(drag.oy+dy,0,effH-crop.h);}else resizeCrop(drag.corner,dx,dy,drag.start);updateOverlay();});
   document.addEventListener("pointerup",()=>{drag=null;});
   function resizeCrop(corner,dx,dy,start){
-    const ar=ratio.w/ratio.h; let ax,ay;
-    if(corner==="nw"){ax=start.x+start.w;ay=start.y+start.h;}
-    if(corner==="ne"){ax=start.x;ay=start.y+start.h;}
-    if(corner==="sw"){ax=start.x+start.w;ay=start.y;}
-    if(corner==="se"){ax=start.x;ay=start.y;}
+    const ar=ratio.w/ratio.h;let ax,ay;
+    if(corner==="nw"){ax=start.x+start.w;ay=start.y+start.h;}if(corner==="ne"){ax=start.x;ay=start.y+start.h;}
+    if(corner==="sw"){ax=start.x+start.w;ay=start.y;}if(corner==="se"){ax=start.x;ay=start.y;}
     let cx=(corner==="nw"||corner==="sw")?start.x+dx:start.x+start.w+dx;
     let cy=(corner==="nw"||corner==="ne")?start.y+dy:start.y+start.h+dy;
     cx=clamp(cx,0,effW);cy=clamp(cy,0,effH);
-    let w=Math.abs(cx-ax),h=Math.abs(cy-ay);
-    if(w/h>ar)h=w/ar;else w=h*ar;
+    let w=Math.abs(cx-ax),h=Math.abs(cy-ay);if(w/h>ar)h=w/ar;else w=h*ar;
     const minW=40;if(w<minW){w=minW;h=w/ar;}
-    let nx=(corner==="nw"||corner==="sw")?ax-w:ax, ny=(corner==="nw"||corner==="ne")?ay-h:ay;
+    let nx=(corner==="nw"||corner==="sw")?ax-w:ax,ny=(corner==="nw"||corner==="ne")?ay-h:ay;
     if(nx<0){w+=nx;h=w/ar;nx=0;if(corner==="nw"||corner==="ne")ny=ay-h;}
     if(ny<0){h+=ny;w=h*ar;ny=0;if(corner==="nw"||corner==="sw")nx=ax-w;}
     if(nx+w>effW){w=effW-nx;h=w/ar;if(corner==="nw"||corner==="ne")ny=ay-h;}
@@ -399,67 +375,123 @@
     crop={x:clamp(nx,0,effW-w),y:clamp(ny,0,effH-h),w,h};
   }
 
-  // ---- controls ----
   ratiosBox.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{ratiosBox.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed","false"));b.setAttribute("aria-pressed","true");ratio={w:+b.dataset.w,h:+b.dataset.h};applyRatio(true);}));
   modeSeg.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{modeSeg.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed","false"));b.setAttribute("aria-pressed","true");mode=b.dataset.mode;modeNote.innerHTML=mode==="crop"?"<b>Crop:</b> drag the box to pick exactly which part of the frame to keep.":"<b>Fit + blur:</b> the whole frame is centered over a blurred fill — nothing gets cut off.";applyRatio(true);}));
   resSel.addEventListener("change",updateOverlay);
   resetBtn.addEventListener("click",()=>applyRatio(true));
 
-  // rotation
-  function applyRotation(deltaDeg){
-    if(!srcW)return;
-    rotation=((rotation+deltaDeg)%360+360)%360;
-    computeEff(); applyRatio(true); sizePreview(); drawPreview(); requestAnimationFrame(layout);
-    srcInfo.textContent=`${srcW}×${srcH}${rotation?`  ·  ${rotation}°`:""}${flipped?"  ·  flip":""}`;
-  }
+  function rotLabel(){srcInfo.textContent=`${srcW}×${srcH}${rotation?`  ·  ${rotation}°`:""}${flipped?"  ·  flip":""}`;}
+  function applyRotation(d){if(!srcW)return;rotation=((rotation+d)%360+360)%360;computeEff();applyRatio(true);sizePreview();drawPreview();requestAnimationFrame(layout);rotLabel();}
   rotL.addEventListener("click",()=>applyRotation(-90));
   rotR.addEventListener("click",()=>applyRotation(90));
-  flipH.addEventListener("click",()=>{flipped=!flipped;flipH.setAttribute("aria-pressed",String(flipped));drawPreview();srcInfo.textContent=`${srcW}×${srcH}${rotation?`  ·  ${rotation}°`:""}${flipped?"  ·  flip":""}`;});
+  flipBtn.addEventListener("click",()=>{flipped=!flipped;flipBtn.setAttribute("aria-pressed",String(flipped));drawPreview();rotLabel();});
 
-  // ---- output dims ----
   function outputDims(){
     let ow,oh;
-    if(mode==="blur"){const ar=ratio.w===0?effW/effH:ratio.w/ratio.h;let h=effH,w=h*ar;ow=w;oh=h;}
-    else{ow=crop.w;oh=crop.h;}
+    if(mode==="blur"){const ar=ratio.w===0?effW/effH:ratio.w/ratio.h;let h=effH,w=h*ar;ow=w;oh=h;}else{ow=crop.w;oh=crop.h;}
     const cap=+resSel.value;
     if(cap>0){const shorter=Math.min(ow,oh);if(shorter>cap){const k=cap/shorter;ow*=k;oh*=k;}}
     return{w:Math.max(2,evenly(ow)),h:Math.max(2,evenly(oh))};
   }
 
-  // ---- playback / preview loop ----
+  // ---- playback ----
   playBtn.addEventListener("click",()=>{video.paused?video.play():video.pause();});
   const useRVFC="requestVideoFrameCallback" in HTMLVideoElement.prototype;
-  function previewLoop(){ if(!playing)return; drawPreview(); if(useRVFC)video.requestVideoFrameCallback(previewLoop); else requestAnimationFrame(previewLoop); }
+  function previewLoop(){if(!playing)return;drawPreview();if(useRVFC)video.requestVideoFrameCallback(previewLoop);else requestAnimationFrame(previewLoop);}
   video.addEventListener("play",()=>{playing=true;if(!recording)playIco.innerHTML='<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>';previewLoop();});
   video.addEventListener("pause",()=>{playing=false;if(!recording)playIco.innerHTML='<path d="M8 5v14l11-7z"/>';drawPreview();});
   video.addEventListener("seeked",drawPreview);
   video.addEventListener("loadeddata",()=>{sizePreview();drawPreview();requestAnimationFrame(layout);});
-  video.addEventListener("timeupdate",()=>{
-    if(recording)return;
-    if(video.duration)seek.value=String(Math.round(video.currentTime/video.duration*1000));
-    timeEl.textContent=`${fmt(video.currentTime)} / ${fmt(video.duration||0)}`;
-  });
+  video.addEventListener("timeupdate",()=>{if(recording)return;if(video.duration)seek.value=String(Math.round(video.currentTime/video.duration*1000));timeEl.textContent=`${fmt(video.currentTime)} / ${fmt(video.duration||0)}`;});
   seek.addEventListener("input",()=>{if(video.duration)video.currentTime=(+seek.value/1000)*video.duration;});
 
-  // ---- enhance ----
-  function enhanceFilter(){switch(enhanceSel.value){case"subtle":return"contrast(1.06) saturate(1.1) brightness(1.01)";case"punchy":return"contrast(1.14) saturate(1.24) brightness(1.02)";default:return"none";}}
+  // ================= EXPORT =================
+  exportBtn.addEventListener("click",()=>{
+    if(recording||encoding)return;
+    if(engineSel.value==="ffmpeg")exportWithFfmpeg(); else exportWithRecorder();
+  });
 
-  function ensureRot(){ if(!rotCanvas){rotCanvas=document.createElement("canvas");rotCtx=rotCanvas.getContext("2d");} if(rotCanvas.width!==effW||rotCanvas.height!==effH){rotCanvas.width=effW;rotCanvas.height=effH;} }
+  // ---- ffmpeg engine ----
+  function crfFor(){const q=+qualitySel.value;return q>=0.3?"16":q>=0.15?"20":"26";}
+  function enhanceEq(){switch(enhanceSel.value){case"subtle":return"eq=contrast=1.06:saturation=1.10";case"punchy":return"eq=contrast=1.14:saturation=1.24:brightness=0.02";default:return"";}}
+  function rotTokens(){const t=[];if(rotation===90)t.push("transpose=1");else if(rotation===270)t.push("transpose=2");else if(rotation===180){t.push("transpose=1","transpose=1");}if(flipped)t.push("hflip");return t;}
+
+  async function loadFfmpeg(){
+    if(ffmpeg)return ffmpeg;
+    if(ffmpegLoading)return ffmpegLoading;
+    ffmpegLoading=(async()=>{
+      if(!window.FFmpegWASM||!window.FFmpegUtil)throw new Error("encoder library not loaded");
+      const {FFmpeg}=window.FFmpegWASM; const f=new FFmpeg();
+      f.on("progress",({progress})=>{if(encoding)setProg(clamp(progress*100,1,99),"Encoding…");});
+      const base="https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd";
+      await f.load({
+        coreURL:await window.FFmpegUtil.toBlobURL(`${base}/ffmpeg-core.js`,"text/javascript"),
+        wasmURL:await window.FFmpegUtil.toBlobURL(`${base}/ffmpeg-core.wasm`,"application/wasm")
+      });
+      ffmpeg=f; return f;
+    })();
+    return ffmpegLoading;
+  }
+
+  async function exportWithFfmpeg(){
+    if(!currentFile){showErr("Load a video first.");return;}
+    hideErr(); result.classList.remove("on");
+    const out=outputDims();
+    encoding=true; exportBtn.disabled=true; exportBtn.textContent="Encoding…"; recBadge.classList.add("on");
+    progress.classList.add("on"); setProg(1,"Loading encoder…");
+    let f;
+    try{ f=await loadFfmpeg(); }
+    catch(e){
+      encoding=false; recBadge.classList.remove("on"); exportBtn.disabled=false; exportBtn.textContent="Export portrait clip";
+      showErr("Couldn't load the ffmpeg encoder (network blocked?). Switched to Fast capture — try again.");
+      engineSel.value="recorder"; engineSel.dispatchEvent(new Event("change")); return;
+    }
+    setProg(2,"Encoding…");
+    try{
+      const inExt=(currentFile.name.match(/\.([a-z0-9]+)$/i)?.[1]||"mp4").toLowerCase();
+      const inName="input."+inExt;
+      await f.writeFile(inName,await window.FFmpegUtil.fetchFile(currentFile));
+      const crf=crfFor(),eq=enhanceEq(),r=rotTokens();
+      let args;
+      if(mode==="blur"){
+        const pre=r.length?r.join(",")+",":""; const eqInner=eq?","+eq:"";
+        const fc=`[0:v]${pre}split=2[a][b];[a]scale=${out.w}:${out.h}:force_original_aspect_ratio=increase,crop=${out.w}:${out.h},boxblur=20:1[bg];[b]scale=${out.w}:${out.h}:force_original_aspect_ratio=decrease${eqInner}[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2,format=yuv420p[v]`;
+        args=["-i",inName,"-filter_complex",fc,"-map","[v]","-map","0:a?","-c:v","libx264","-preset","veryfast","-crf",crf,"-c:a","aac","-b:a","192k"];
+      }else{
+        const cx=evenly(clamp(crop.x,0,effW)),cy=evenly(clamp(crop.y,0,effH));
+        const cw=evenly(clamp(crop.w,2,effW-cx)),ch=evenly(clamp(crop.h,2,effH-cy));
+        const t=[...r,`crop=${cw}:${ch}:${cx}:${cy}`,`scale=${out.w}:${out.h}:flags=lanczos`];
+        if(eq)t.push(eq); t.push("format=yuv420p");
+        args=["-i",inName,"-vf",t.join(","),"-c:v","libx264","-preset","veryfast","-crf",crf,"-c:a","aac","-b:a","192k"];
+      }
+      if(+fpsSel.value)args.push("-r",String(+fpsSel.value));
+      args.push("-movflags","+faststart","output.mp4");
+      await f.exec(args);
+      const data=await f.readFile("output.mp4");
+      try{await f.deleteFile(inName);await f.deleteFile("output.mp4");}catch(_){}
+      const blob=new Blob([data.buffer],{type:"video/mp4"}); const url=URL.createObjectURL(blob);
+      outVideo.src=url; dl.href=url;
+      const base=currentFile.name.replace(/\.[^.]+$/,"");
+      dl.download=`${base}_${ratio.w===0?"original":ratio.w+"x"+ratio.h}.mp4`;
+      outMeta.textContent=`${out.w}×${out.h} · MP4 (H.264 + AAC) · ${(blob.size/1048576).toFixed(1)} MB`;
+      result.classList.add("on"); setProg(100,"Done");
+    }catch(e){ showErr("Encoding failed: "+((e&&e.message)||e)); }
+    finally{ encoding=false; recBadge.classList.remove("on"); exportBtn.disabled=false; exportBtn.textContent="Export portrait clip"; setTimeout(()=>progress.classList.remove("on"),900); }
+  }
+
+  // ---- recorder engine (fast fallback) ----
+  function enhanceFilter(){switch(enhanceSel.value){case"subtle":return"contrast(1.06) saturate(1.1) brightness(1.01)";case"punchy":return"contrast(1.14) saturate(1.24) brightness(1.02)";default:return"none";}}
+  function ensureRot(){if(!rotCanvas){rotCanvas=document.createElement("canvas");rotCtx=rotCanvas.getContext("2d");}if(rotCanvas.width!==effW||rotCanvas.height!==effH){rotCanvas.width=effW;rotCanvas.height=effH;}}
   function drawFrame(out,ctx){
-    ensureRot(); rotCtx.clearRect(0,0,effW,effH); drawRotated(rotCtx,effW,effH);
+    ensureRot();rotCtx.clearRect(0,0,effW,effH);drawRotated(rotCtx,effW,effH);
     const ef=enhanceFilter();
     if(mode==="blur"){
-      const cw=out.w,ch=out.h;
-      const sc=Math.max(cw/effW,ch/effH),bw=effW*sc,bh=effH*sc;
+      const cw=out.w,ch=out.h,sc=Math.max(cw/effW,ch/effH),bw=effW*sc,bh=effH*sc;
       ctx.save();ctx.filter="blur(30px) brightness(0.72)";ctx.drawImage(rotCanvas,(cw-bw)/2,(ch-bh)/2,bw,bh);ctx.restore();
       const sf=Math.min(cw/effW,ch/effH),fw=effW*sf,fh=effH*sf;
       ctx.save();ctx.filter=ef;ctx.drawImage(rotCanvas,(cw-fw)/2,(ch-fh)/2,fw,fh);ctx.restore();
-    }else{
-      ctx.save();ctx.filter=ef;ctx.drawImage(rotCanvas,crop.x,crop.y,crop.w,crop.h,0,0,out.w,out.h);ctx.restore();
-    }
+    }else{ctx.save();ctx.filter=ef;ctx.drawImage(rotCanvas,crop.x,crop.y,crop.w,crop.h,0,0,out.w,out.h);ctx.restore();}
   }
-
-  // ---- mime ----
   function pickMime(){
     const want=fmtSel.value;
     const mp4=['video/mp4;codecs="avc1.640028"','video/mp4;codecs=avc1','video/mp4'];
@@ -469,68 +501,46 @@
     if(want!=="auto"){for(const c of[...mp4,...webm]){if(MediaRecorder.isTypeSupported(c))return c;}}
     return"";
   }
-
-  // ---- export ----
-  exportBtn.addEventListener("click",async()=>{
-    if(recording)return;
-    if(!window.MediaRecorder){showErr("This browser can't record video. Try Chrome or Edge.");return;}
+  async function exportWithRecorder(){
+    if(!window.MediaRecorder){showErr("This browser can't record video. Try Chrome or Edge, or use Compatible engine.");return;}
     hideErr(); result.classList.remove("on");
     const out=outputDims();
-    const exp=document.createElement("canvas"); exp.width=out.w; exp.height=out.h;
-    const ectx=exp.getContext("2d");
+    const exp=document.createElement("canvas"); exp.width=out.w; exp.height=out.h; const ectx=exp.getContext("2d");
     const mime=pickMime(); if(!mime){showErr("No supported encoder found in this browser.");return;}
     const ext=mime.startsWith("video/mp4")?"mp4":"webm";
-    const fpsTarget=+fpsSel.value, assumedFps=fpsTarget||30, bpp=+qualitySel.value;
+    const fpsTarget=+fpsSel.value,assumedFps=fpsTarget||30,bpp=+qualitySel.value;
     const bitrate=Math.round(clamp(out.w*out.h*assumedFps*bpp,3_000_000,80_000_000));
-
     const canvasStream=exp.captureStream(0); const vTrack=canvasStream.getVideoTracks()[0];
-    let audioTracks=[];
-    try{const vs=video.captureStream?video.captureStream():(video.mozCaptureStream&&video.mozCaptureStream());if(vs)audioTracks=vs.getAudioTracks();}catch(_){}
+    let audioTracks=[]; try{const vs=video.captureStream?video.captureStream():(video.mozCaptureStream&&video.mozCaptureStream());if(vs)audioTracks=vs.getAudioTracks();}catch(_){}
     const mixed=new MediaStream([vTrack,...audioTracks]);
-
-    let rec;
-    try{rec=new MediaRecorder(mixed,{mimeType:mime,videoBitsPerSecond:bitrate});}
-    catch(e){try{rec=new MediaRecorder(mixed,{mimeType:mime});}catch(e2){showErr("Couldn't start the encoder: "+e2.message);return;}}
-    const chunks=[];
-    rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};
+    let rec; try{rec=new MediaRecorder(mixed,{mimeType:mime,videoBitsPerSecond:bitrate});}catch(e){try{rec=new MediaRecorder(mixed,{mimeType:mime});}catch(e2){showErr("Couldn't start the encoder: "+e2.message);return;}}
+    const chunks=[]; rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};
     rec.onstop=()=>{
       const blob=new Blob(chunks,{type:mime.split(";")[0]}); const url=URL.createObjectURL(blob);
-      outVideo.src=url; dl.href=url;
-      const base=fileName.replace(/\.[^.]+$/,"");
+      outVideo.src=url; dl.href=url; const base=fileName.replace(/\.[^.]+$/,"");
       dl.download=`${base}_${ratio.w===0?"original":ratio.w+"x"+ratio.h}.${ext}`;
-      outMeta.textContent=`${out.w}×${out.h} · ${ext.toUpperCase()} · ${(blob.size/1048576).toFixed(1)} MB · ${Math.round(bitrate/1e6)} Mbps target`;
+      outMeta.textContent=`${out.w}×${out.h} · ${ext.toUpperCase()} · ${(blob.size/1048576).toFixed(1)} MB · ${Math.round(bitrate/1e6)} Mbps`;
       result.classList.add("on"); endRec();
     };
-
-    recording=true; recBadge.classList.add("on");
-    exportBtn.disabled=true; exportBtn.textContent="Encoding…";
-    progress.classList.add("on"); setProg(0,"Encoding…");
-
+    recording=true; recBadge.classList.add("on"); exportBtn.disabled=true; exportBtn.textContent="Encoding…"; progress.classList.add("on"); setProg(0,"Encoding…");
     video.pause(); video.currentTime=0;
-    await new Promise(r=>{const f=()=>{video.removeEventListener("seeked",f);r();};video.addEventListener("seeked",f);});
+    await new Promise(r=>{const fn=()=>{video.removeEventListener("seeked",fn);r();};video.addEventListener("seeked",fn);});
     rec.start(250); video.muted=true;
     try{await video.play();}catch(e){showErr("Couldn't start playback for encoding.");endRec();return;}
-
-    const dur=video.duration||0, minGap=fpsTarget?1000/fpsTarget:0; let lastTs=-1e9;
+    const dur=video.duration||0,minGap=fpsTarget?1000/fpsTarget:0; let lastTs=-1e9;
     function step(now){
-      if(!recording)return;
-      const t=now||performance.now();
-      if(!minGap||t-lastTs>=minGap){ drawFrame(out,ectx); drawPreview(); try{vTrack.requestFrame();}catch(_){} lastTs=t; }
+      if(!recording)return; const t=now||performance.now();
+      if(!minGap||t-lastTs>=minGap){drawFrame(out,ectx);drawPreview();try{vTrack.requestFrame();}catch(_){}lastTs=t;}
       setProg((dur?clamp(video.currentTime/dur,0,1):0)*100,"Encoding…");
       if(video.ended){stopRec();return;}
-      if(useRVFC)video.requestVideoFrameCallback(step); else requestAnimationFrame(step);
+      if(useRVFC)video.requestVideoFrameCallback(step);else requestAnimationFrame(step);
     }
-    if(useRVFC)video.requestVideoFrameCallback(step); else requestAnimationFrame(step);
+    if(useRVFC)video.requestVideoFrameCallback(step);else requestAnimationFrame(step);
     video.onended=()=>stopRec();
     function stopRec(){if(rec&&rec.state!=="inactive"){try{rec.stop();}catch(_){}}}
-  });
-
-  function endRec(){
-    recording=false; recBadge.classList.remove("on");
-    exportBtn.disabled=false; exportBtn.textContent="Export portrait clip";
-    setProg(100,"Done"); setTimeout(()=>progress.classList.remove("on"),900);
-    video.onended=null; video.muted=true; playIco.innerHTML='<path d="M8 5v14l11-7z"/>';
   }
+  function endRec(){recording=false;recBadge.classList.remove("on");exportBtn.disabled=false;exportBtn.textContent="Export portrait clip";setProg(100,"Done");setTimeout(()=>progress.classList.remove("on"),900);video.onended=null;video.muted=true;playIco.innerHTML='<path d="M8 5v14l11-7z"/>';}
+
   function setProg(p,label){barFill.style.width=p.toFixed(0)+"%";plPct.textContent=Math.round(p)+"%";if(label)plLabel.textContent=label;}
   function showErr(m){errBox.textContent=m;errBox.classList.add("on");}
   function hideErr(){errBox.classList.remove("on");}
