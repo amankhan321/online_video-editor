@@ -7,8 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
-<script src="https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/index.js"></script>
+<script src="./vendor/ffmpeg.js"></script>
+<script src="./vendor/ffmpeg-util.js"></script>
 <style>
   :root{
     --bg:#ffffff;--paper:#f3f4f7;--paper-2:#e9ebf0;--line:#e3e6ec;--line-2:#d2d7e0;
@@ -233,7 +233,7 @@
         <div class="field" style="margin-top:10px"><p class="label">Enhance</p>
           <select id="enhance"><option value="off" selected>Off · keep original look</option><option value="subtle">Subtle pop</option><option value="punchy">Punchy</option></select></div>
         <button id="export" class="btn-primary">Export portrait clip</button>
-        <div class="runtime-note" id="runtimeNote">Compatible mode re-encodes with ffmpeg — H.264 + AAC, plays everywhere. First export loads the encoder (~32&nbsp;MB, once).</div>
+        <div class="runtime-note" id="runtimeNote">Compatible mode re-encodes with ffmpeg — H.264 + AAC, plays everywhere. First export loads the encoder from this site (~31First export loads the encoder (~32&nbsp;MB, once).nbsp;MB, cached after).</div>
         <button id="reset" class="btn-ghost">Reset crop</button>
         <button id="newfile" class="btn-ghost">Use a different video</button>
 
@@ -320,7 +320,7 @@
 
   engineSel.addEventListener("change",()=>{
     runtimeNote.innerHTML = engineSel.value==="ffmpeg"
-      ? "Compatible mode re-encodes with ffmpeg — H.264 + AAC, plays everywhere. First export loads the encoder (~32&nbsp;MB, once)."
+      ? "Compatible mode re-encodes with ffmpeg — H.264 + AAC, plays everywhere. First export loads the encoder from this site (~31First export loads the encoder (~32&nbsp;MB, once).nbsp;MB, cached after)."
       : "Fast mode captures in real time (about as long as the clip). Audio may be Opus, which some desktop players won't play — use Compatible if sound matters.";
   });
 
@@ -421,12 +421,14 @@
     if(ffmpegLoading)return ffmpegLoading;
     ffmpegLoading=(async()=>{
       if(!window.FFmpegWASM||!window.FFmpegUtil)throw new Error("encoder library not loaded");
-      const {FFmpeg}=window.FFmpegWASM; const f=new FFmpeg();
+      const {FFmpeg}=window.FFmpegWASM; const {toBlobURL}=window.FFmpegUtil; const f=new FFmpeg();
       f.on("progress",({progress})=>{if(encoding)setProg(clamp(progress*100,1,99),"Encoding…");});
-      const base="https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd";
+      const v=new URL("./vendor/",location.href).href;
+      // load from same-origin vendored files; blob URLs let the worker spawn without cross-origin issues
       await f.load({
-        coreURL:await window.FFmpegUtil.toBlobURL(`${base}/ffmpeg-core.js`,"text/javascript"),
-        wasmURL:await window.FFmpegUtil.toBlobURL(`${base}/ffmpeg-core.wasm`,"application/wasm")
+        classWorkerURL:await toBlobURL(v+"814.ffmpeg.js","text/javascript"),
+        coreURL:await toBlobURL(v+"ffmpeg-core.js","text/javascript"),
+        wasmURL:await toBlobURL(v+"ffmpeg-core.wasm","application/wasm")
       });
       ffmpeg=f; return f;
     })();
