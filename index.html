@@ -731,27 +731,37 @@
   function enhanceEq(){switch(enhanceSel.value){case"subtle":return"eq=contrast=1.06:saturation=1.10";case"punchy":return"eq=contrast=1.14:saturation=1.24:brightness=0.02";default:return"";}}
   function rotTokens(){const t=[];if(rotation===90)t.push("transpose=1");else if(rotation===270)t.push("transpose=2");else if(rotation===180){t.push("transpose=1","transpose=1");}if(flipped)t.push("hflip");return t;}
 
+  function withTimeout(p,ms,label){ return Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error((label||"load")+" timed out")),ms))]); }
+  async function fetchBlobURL(url,type,onProg){
+    const res=await fetch(url); if(!res.ok)throw new Error("fetch "+res.status+" "+url.split("/").pop());
+    const total=+res.headers.get("content-length")||0;
+    if(!res.body||!total){ const b=await res.blob(); return URL.createObjectURL(b); }
+    const reader=res.body.getReader(); const chunks=[]; let recv=0;
+    for(;;){ const {done,value}=await reader.read(); if(done)break; chunks.push(value); recv+=value.length; if(onProg)onProg(recv/total); }
+    return URL.createObjectURL(new Blob(chunks,{type}));
+  }
+  async function tryLoad(useMT){
+    const {FFmpeg}=window.FFmpegWASM; const f=new FFmpeg();
+    f.on("progress",({progress})=>{if(encoding){const overall=((segIndex+clamp(progress,0,1))/Math.max(1,segTotal))*100;setProg(clamp(overall,1,99),segTotal>1?`Encoding ${segIndex+1}/${segTotal}…`:"Encoding…");}});
+    const base=new URL(useMT?"./vendor/mt/":"./vendor/",location.href).href;
+    setProg(1,"Downloading encoder…");
+    const coreURL=await fetchBlobURL(base+"ffmpeg-core.js","text/javascript");
+    const wasmURL=await fetchBlobURL(base+"ffmpeg-core.wasm","application/wasm",p=>setProg(clamp(p*88,1,88),"Downloading encoder…"));
+    const cfg={coreURL,wasmURL};
+    if(useMT)cfg.workerURL=await fetchBlobURL(base+"ffmpeg-core.worker.js","text/javascript");
+    setProg(92,"Starting encoder…");
+    await withTimeout(f.load(cfg),45000,"encoder start");
+    return f;
+  }
   async function loadFfmpeg(){
     if(ffmpeg)return ffmpeg;
     if(ffmpegLoading)return ffmpegLoading;
     ffmpegLoading=(async()=>{
       if(!window.FFmpegWASM||!window.FFmpegUtil)throw new Error("encoder library not loaded");
-      const {FFmpeg}=window.FFmpegWASM; const {toBlobURL}=window.FFmpegUtil; const f=new FFmpeg();
-      f.on("progress",({progress})=>{if(encoding){const overall=((segIndex+clamp(progress,0,1))/Math.max(1,segTotal))*100;setProg(clamp(overall,1,99),segTotal>1?`Encoding ${segIndex+1}/${segTotal}…`:"Encoding…");}});
       const mt=(self.crossOriginIsolated===true)&&(typeof SharedArrayBuffer!=="undefined");
-      const base=new URL(mt?"./vendor/mt/":"./vendor/",location.href).href;
-      // Multi-threaded core (uses all CPU cores, ~2-4x faster) when cross-origin isolated; else single-thread.
-      const cfg={
-        coreURL:await toBlobURL(base+"ffmpeg-core.js","text/javascript"),
-        wasmURL:await toBlobURL(base+"ffmpeg-core.wasm","application/wasm")
-      };
-      if(mt)cfg.workerURL=await toBlobURL(base+"ffmpeg-core.worker.js","text/javascript");
-      try{ await f.load(cfg); }
-      catch(err){
-        if(mt){ const st=new URL("./vendor/",location.href).href;
-          await f.load({coreURL:await toBlobURL(st+"ffmpeg-core.js","text/javascript"),wasmURL:await toBlobURL(st+"ffmpeg-core.wasm","application/wasm")}); }
-        else throw err;
-      }
+      let f;
+      try{ f=await tryLoad(mt); }
+      catch(err){ if(mt){ setProg(1,"Falling back…"); f=await tryLoad(false); } else throw err; }
       ffmpeg=f; return f;
     })();
     return ffmpegLoading;
