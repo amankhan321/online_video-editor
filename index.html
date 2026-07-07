@@ -195,10 +195,19 @@
   .tl-spacer{flex:1}
   #joinSeg{width:230px;flex:0 0 auto}
   @media (max-width:520px){#joinSeg{width:100%;margin-top:4px}}
+  #fatal{display:none;position:fixed;left:0;right:0;top:0;z-index:99999;background:#b42318;color:#fff;font-family:var(--mono);font-size:12px;line-height:1.4;padding:10px 14px;white-space:pre-wrap;box-shadow:0 4px 14px rgba(0,0,0,.25)}
   .hidden{display:none!important}
 </style>
 </head>
 <body>
+<div id="fatal"></div>
+<script>
+(function(){
+  function show(m){var el=document.getElementById('fatal');if(!el){el=document.createElement('div');el.id='fatal';document.body.appendChild(el);}el.textContent='\u26A0 '+m+' — please screenshot this';el.style.display='block';}
+  window.addEventListener('error',function(e){show((e.message||'script error')+(e.filename?(' @ '+String(e.filename).split('/').pop()+':'+e.lineno):''));});
+  window.addEventListener('unhandledrejection',function(e){var r=e.reason;show('Promise: '+((r&&r.message)||r||'unknown'));});
+})();
+</script>
 <div class="wrap">
   <header>
     <span class="kicker"><span class="blip"></span>Reframe · runs in your browser</span>
@@ -434,7 +443,7 @@
     tctx.save(); tctx.translate(tw/2,th/2); tctx.rotate(rad); if(flipped)tctx.scale(-1,1);
     tctx.drawImage(video,-srcW*k/2,-srcH*k/2,srcW*k,srcH*k); tctx.restore();
   }
-  function sizePreview(){ if(!effW)return; const cap=960,k=Math.min(1,cap/Math.max(effW,effH)); preview.width=Math.max(2,Math.round(effW*k)); preview.height=Math.max(2,Math.round(effH*k)); }
+  function sizePreview(){ if(!effW)return; const cap=(window.innerWidth<820?640:960),k=Math.min(1,cap/Math.max(effW,effH)); preview.width=Math.max(2,Math.round(effW*k)); preview.height=Math.max(2,Math.round(effH*k)); }
   function drawPreview(){ if(!effW)return; pctx.clearRect(0,0,preview.width,preview.height); drawRotated(pctx,preview.width,preview.height); }
 
   function layout(){ if(!effW)return; const pr=preview.getBoundingClientRect(),sr=stage.getBoundingClientRect(); dispScale=pr.width/effW; dispOffX=pr.left-sr.left; dispOffY=pr.top-sr.top; updateOverlay(); }
@@ -917,6 +926,7 @@
   function showErr(m){errBox.textContent=m;errBox.classList.add("on");}
   function hideErr(){errBox.classList.remove("on");}
 
+  ["dragover","drop"].forEach(ev=>window.addEventListener(ev,e=>{ if(!e.target.closest("#dropzone")) e.preventDefault(); },false));
   const ro=new ResizeObserver(()=>layout()); ro.observe(stage);
 })();
 </script>
