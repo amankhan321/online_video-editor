@@ -151,6 +151,12 @@
   .clip a:hover{text-decoration:underline}
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
   :focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+  .customrow{display:flex;align-items:center;gap:8px;margin-top:10px}
+  .num{width:100%;background:var(--paper);border:1px solid var(--line-2);border-radius:9px;padding:9px 8px;font-family:var(--mono);font-size:14px;color:var(--ink);text-align:center;-moz-appearance:textfield}
+  .num::-webkit-outer-spin-button,.num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .customrow .colon{font-family:var(--disp);font-weight:700;color:var(--ink-soft);font-size:18px}
+  .customrow .cap{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:5px;display:block}
+  .customrow .field{flex:1}
   .hidden{display:none!important}
 </style>
 </head>
@@ -203,6 +209,12 @@
           <button data-w="3" data-h="4">3:4<span class="sub">Portrait</span></button>
           <button data-w="16" data-h="9">16:9<span class="sub">Landscape</span></button>
           <button data-w="0" data-h="0">Original<span class="sub">Source</span></button>
+          <button data-w="c" id="customBtn">Custom<span class="sub">Any ratio</span></button>
+        </div>
+        <div class="customrow hidden" id="customRow">
+          <div class="field"><span class="cap">Width</span><input id="cW" class="num" type="number" min="0.1" step="0.1" value="4"></div>
+          <span class="colon" style="margin-top:16px">:</span>
+          <div class="field"><span class="cap">Height</span><input id="cH" class="num" type="number" min="0.1" step="0.1" value="5"></div>
         </div>
       </div>
 
@@ -306,7 +318,7 @@
   const video=$("video"),preview=$("preview"),pctx=preview.getContext("2d"),stage=$("stage"),cropEl=$("crop");
   const dimBadge=$("dimBadge"),recBadge=$("rec");
   const playBtn=$("play"),playIco=$("playIco"),seek=$("seek"),timeEl=$("time");
-  const ratiosBox=$("ratios"),modeSeg=$("modeSeg"),modeNote=$("modeNote");
+  const ratiosBox=$("ratios"),customBtn=$("customBtn"),customRow=$("customRow"),cW=$("cW"),cH=$("cH"),modeSeg=$("modeSeg"),modeNote=$("modeNote");
   const engineSel=$("engine"),resSel=$("res"),qualitySel=$("quality"),fmtSel=$("fmt"),fpsSel=$("fps"),enhanceSel=$("enhance");
   const exportBtn=$("export"),resetBtn=$("reset"),newBtn=$("newfile"),runtimeNote=$("runtimeNote");
   const rotL=$("rotL"),rotR=$("rotR"),flipBtn=$("flipH");
@@ -418,7 +430,20 @@
     crop={x:clamp(nx,0,effW-w),y:clamp(ny,0,effH-h),w,h};
   }
 
-  ratiosBox.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{ratiosBox.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed","false"));b.setAttribute("aria-pressed","true");ratio={w:+b.dataset.w,h:+b.dataset.h};applyRatio(true);}));
+  ratiosBox.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{
+    ratiosBox.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed","false"));
+    b.setAttribute("aria-pressed","true");
+    if(b.dataset.w==="c"){
+      customRow.classList.remove("hidden");
+      const w=+cW.value,h=+cH.value; if(w>0&&h>0)ratio={w,h};
+    }else{
+      customRow.classList.add("hidden"); ratio={w:+b.dataset.w,h:+b.dataset.h};
+    }
+    applyRatio(true);
+  }));
+  function onCustomInput(){ if(customBtn.getAttribute("aria-pressed")!=="true")return; const w=+cW.value,h=+cH.value; if(w>0&&h>0){ratio={w,h};applyRatio(true);} }
+  cW.addEventListener("input",onCustomInput);
+  cH.addEventListener("input",onCustomInput);
   modeSeg.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{modeSeg.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed","false"));b.setAttribute("aria-pressed","true");mode=b.dataset.mode;modeNote.innerHTML=mode==="crop"?"<b>Crop:</b> drag the box to pick exactly which part of the frame to keep.":"<b>Fit + blur:</b> the whole frame is centered over a blurred fill — nothing gets cut off.";applyRatio(true);}));
   resSel.addEventListener("change",updateOverlay);
   resetBtn.addEventListener("click",()=>applyRatio(true));
