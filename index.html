@@ -740,28 +740,20 @@
     for(;;){ const {done,value}=await reader.read(); if(done)break; chunks.push(value); recv+=value.length; if(onProg)onProg(recv/total); }
     return URL.createObjectURL(new Blob(chunks,{type}));
   }
-  async function tryLoad(useMT){
-    const {FFmpeg}=window.FFmpegWASM; const f=new FFmpeg();
-    f.on("progress",({progress})=>{if(encoding){const overall=((segIndex+clamp(progress,0,1))/Math.max(1,segTotal))*100;setProg(clamp(overall,1,99),segTotal>1?`Encoding ${segIndex+1}/${segTotal}…`:"Encoding…");}});
-    const base=new URL(useMT?"./vendor/mt/":"./vendor/",location.href).href;
-    setProg(1,"Downloading encoder…");
-    const coreURL=await fetchBlobURL(base+"ffmpeg-core.js","text/javascript");
-    const wasmURL=await fetchBlobURL(base+"ffmpeg-core.wasm","application/wasm",p=>setProg(clamp(p*88,1,88),"Downloading encoder…"));
-    const cfg={coreURL,wasmURL};
-    if(useMT)cfg.workerURL=await fetchBlobURL(base+"ffmpeg-core.worker.js","text/javascript");
-    setProg(92,"Starting encoder…");
-    await withTimeout(f.load(cfg),45000,"encoder start");
-    return f;
-  }
   async function loadFfmpeg(){
     if(ffmpeg)return ffmpeg;
     if(ffmpegLoading)return ffmpegLoading;
     ffmpegLoading=(async()=>{
       if(!window.FFmpegWASM||!window.FFmpegUtil)throw new Error("encoder library not loaded");
-      const mt=(self.crossOriginIsolated===true)&&(typeof SharedArrayBuffer!=="undefined");
-      let f;
-      try{ f=await tryLoad(mt); }
-      catch(err){ if(mt){ setProg(1,"Falling back…"); f=await tryLoad(false); } else throw err; }
+      const {FFmpeg}=window.FFmpegWASM; const f=new FFmpeg();
+      f.on("progress",({progress})=>{if(encoding){const overall=((segIndex+clamp(progress,0,1))/Math.max(1,segTotal))*100;setProg(clamp(overall,1,99),segTotal>1?`Encoding ${segIndex+1}/${segTotal}…`:"Encoding…");}});
+      f.on("log",({message})=>{ if(message)window.__ffLog=message; });
+      const base=new URL("./vendor/",location.href).href;
+      setProg(1,"Downloading encoder…");
+      const coreURL=await fetchBlobURL(base+"ffmpeg-core.js","text/javascript");
+      const wasmURL=await fetchBlobURL(base+"ffmpeg-core.wasm","application/wasm",p=>setProg(clamp(p*88,1,88),"Downloading encoder…"));
+      setProg(92,"Starting encoder…");
+      await withTimeout(f.load({coreURL,wasmURL}),90000,"encoder start");
       ffmpeg=f; return f;
     })();
     return ffmpegLoading;
@@ -843,7 +835,7 @@
     try{ f=await loadFfmpeg(); }
     catch(e){
       encoding=false; recBadge.classList.remove("on"); exportBtn.disabled=false; exportBtn.textContent="Export portrait clip";
-      showErr("Couldn't load the ffmpeg encoder: "+((e&&e.message)||e)+". Switched to Fast capture — try again.");
+      showErr("Couldn't load the ffmpeg encoder: "+((e&&e.message)||e)+(window.__ffLog?(" [last log: "+window.__ffLog+"]"):"")+". Switched to Fast capture — try again.");
       engineSel.value="recorder"; engineSel.dispatchEvent(new Event("change")); return;
     }
     setProg(2,segTotal>1?`Encoding 1/${segTotal}…`:"Encoding…");
