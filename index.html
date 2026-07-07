@@ -170,6 +170,27 @@
   .stkr .del{position:absolute;top:-11px;right:-11px;width:22px;height:22px;border-radius:50%;background:var(--rec);color:#fff;border:2px solid #fff;display:none;place-items:center;cursor:pointer;font-size:13px;line-height:1;z-index:2}
   .stkr .rz{position:absolute;right:-8px;bottom:-8px;width:16px;height:16px;border-radius:3px;background:var(--brand);border:2px solid #fff;display:none;cursor:nwse-resize;z-index:2}
   .stkr.sel .del,.stkr.sel .rz{display:grid}
+  .vidcol{display:flex;flex-direction:column;gap:16px;min-width:0}
+  .timeline-card{background:var(--bg);border:1px solid var(--line);border-radius:16px;padding:16px}
+  .tl-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px}
+  .tl-title{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint);font-weight:700}
+  .tl-hint{font-size:12px;color:var(--ink-faint)}
+  .tl-track{position:relative;height:56px;border-radius:10px;background:repeating-linear-gradient(45deg,#eceef3 0 8px,#e6e8ef 8px 16px);border:1px solid var(--line);overflow:hidden;cursor:pointer;touch-action:none}
+  .tl-seg{position:absolute;top:0;bottom:0;background:linear-gradient(180deg,#dfe6ff,#c9d4ff);border:1px solid var(--brand);border-radius:6px;box-sizing:border-box;cursor:pointer;overflow:hidden}
+  .tl-seg::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,rgba(27,70,255,.08) 0 2px,transparent 2px 7px)}
+  .tl-seg.sel{background:linear-gradient(180deg,#bcccff,#9db4ff);border-width:2px;box-shadow:0 0 0 2px rgba(27,70,255,.25)}
+  .tl-play{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--rec);z-index:4;pointer-events:none;box-shadow:0 0 0 1px rgba(255,255,255,.6)}
+  .tl-play::before{content:"";position:absolute;top:-4px;left:-4px;width:10px;height:10px;border-radius:50%;background:var(--rec)}
+  .tl-times{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--ink-soft);margin-top:9px}
+  .tl-times .mid{color:var(--brand)}
+  .tl-controls{display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .tlbtn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-2);background:var(--paper);color:var(--ink);border-radius:10px;padding:9px 13px;font-size:13px;font-weight:600;cursor:pointer;transition:.12s}
+  .tlbtn:hover{border-color:var(--brand);color:var(--brand)}
+  .tlbtn.danger:hover{border-color:var(--rec);color:var(--rec)}
+  .tlbtn:disabled{opacity:.45;cursor:not-allowed}
+  .tl-spacer{flex:1}
+  #joinSeg{width:230px;flex:0 0 auto}
+  @media (max-width:520px){#joinSeg{width:100%;margin-top:4px}}
   .hidden{display:none!important}
 </style>
 </head>
@@ -190,6 +211,7 @@
   </div>
 
   <div id="editor" class="editor hidden">
+    <div class="vidcol">
     <div class="stage-card">
       <div class="stage-bar"><span class="fname" id="fname">clip.mp4</span><span id="srcinfo">—</span></div>
       <div class="stage" id="stage">
@@ -210,6 +232,23 @@
         <button id="play" aria-label="Play / pause"><svg id="playIco" width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
         <input id="seek" type="range" min="0" max="1000" value="0" aria-label="Seek" />
         <span class="t" id="time">0:00 / 0:00</span>
+      </div>
+    </div>
+
+      <div class="timeline-card">
+        <div class="tl-head"><span class="tl-title">Timeline</span><span class="tl-hint" id="tlHint">Scrub, hit Split, then select a part and Delete to cut it out</span></div>
+        <div class="tl-track" id="tlTrack"><div class="tl-play" id="tlPlay"></div></div>
+        <div class="tl-times"><span id="tlCur">0:00</span><span class="mid" id="tlKept">0:00 kept</span><span id="tlTotal">0:00</span></div>
+        <div class="tl-controls">
+          <button class="tlbtn" id="tlSplit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12"/></svg>Split</button>
+          <button class="tlbtn danger" id="tlDelete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Delete part</button>
+          <button class="tlbtn" id="tlReset"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v4h4"/></svg>Reset</button>
+          <span class="tl-spacer"></span>
+          <div class="seg" id="joinSeg">
+            <button data-join="one" aria-pressed="true">Join to one</button>
+            <button data-join="sep">Separate clips</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -260,30 +299,6 @@
           <input id="stkUpload" type="file" accept="image/*" class="hidden">
         </label>
         <p class="note">Tap to add, drag to place, corner to resize, × to remove. Baked into the export.</p>
-      </div>
-
-      <div class="panel">
-        <p class="label">Trim &amp; split</p>
-        <div class="trimbar" id="trimbar">
-          <div class="trimsel" id="trimsel"></div>
-          <div class="trimplay" id="trimplay"></div>
-          <div class="trimhandle" id="thStart"></div>
-          <div class="trimhandle" id="thEnd" style="left:100%"></div>
-        </div>
-        <div class="triptimes"><span id="tStart">0:00</span><span class="mid" id="tLen">full</span><span id="tEnd">0:00</span></div>
-        <div class="twobtn">
-          <button class="btn-ghost" id="setStart">Start = playhead</button>
-          <button class="btn-ghost" id="setEnd">End = playhead</button>
-        </div>
-        <div class="seg" id="splitSeg" style="margin-top:12px">
-          <button data-split="off" aria-pressed="true">One clip</button>
-          <button data-split="on">Split into parts</button>
-        </div>
-        <div id="splitOpts" class="hidden" style="margin-top:10px">
-          <div class="field"><p class="label">Clip length</p>
-            <select id="splitLen"><option value="15">15 seconds</option><option value="30" selected>30 seconds</option><option value="60">60 seconds</option><option value="90">90 seconds</option></select></div>
-          <p class="note" id="splitCount"></p>
-        </div>
       </div>
 
       <div class="panel">
@@ -349,9 +364,8 @@
   const rotL=$("rotL"),rotR=$("rotR"),flipBtn=$("flipH");
   const progress=$("progress"),barFill=$("barFill"),plLabel=$("plLabel"),plPct=$("plPct");
   const result=$("result"),outVideo=$("outVideo"),dl=$("dl"),outMeta=$("outMeta"),errBox=$("err"),clipList=$("clipList");
-  const trimbar=$("trimbar"),trimsel=$("trimsel"),trimplay=$("trimplay"),thStart=$("thStart"),thEnd=$("thEnd");
-  const tStart=$("tStart"),tEnd=$("tEnd"),tLen=$("tLen"),setStartBtn=$("setStart"),setEndBtn=$("setEnd");
-  const splitSeg=$("splitSeg"),splitOpts=$("splitOpts"),splitLenSel=$("splitLen"),splitCount=$("splitCount");
+  const tlTrack=$("tlTrack"),tlPlay=$("tlPlay"),tlCur=$("tlCur"),tlKept=$("tlKept"),tlTotal=$("tlTotal");
+  const tlSplit=$("tlSplit"),tlDelete=$("tlDelete"),tlReset=$("tlReset"),joinSeg=$("joinSeg"),tlHint=$("tlHint");
   const stkLayer=$("stkLayer"),stkGrid=$("stkGrid"),stkUpload=$("stkUpload");
   const fnameEl=$("fname"),srcInfo=$("srcinfo");
 
@@ -363,7 +377,7 @@
   let fileName="clip.mp4",currentFile=null,recording=false,encoding=false,lastUrl=null,playing=false;
   let rotCanvas=null,rotCtx=null;
   let ffmpeg=null,ffmpegLoading=null;
-  let trimStart=0,trimEnd=0,splitOn=false,segIndex=0,segTotal=1,clipUrls=[];
+  let timeline=[],selSeg=null,segSeq=0,joinMode=true,segIndex=0,segTotal=1,clipUrls=[];
   let stickers=[],stickerSeq=0,selSticker=null;
 
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -387,8 +401,8 @@
     video.onloadedmetadata=()=>{
       srcW=video.videoWidth; srcH=video.videoHeight; srcInfo.textContent=`${srcW}×${srcH}`;
       dropzone.classList.add("hidden"); editor.classList.remove("hidden"); result.classList.remove("on");
-      trimStart=0; trimEnd=isFinite(video.duration)?video.duration:0;
-      computeEff(); applyRatio(true); sizePreview(); drawPreview(); requestAnimationFrame(layout); renderTrim();
+      initTimeline();
+      computeEff(); applyRatio(true); sizePreview(); drawPreview(); requestAnimationFrame(layout); renderTimeline();
     };
     video.onloadeddata=()=>{ video.currentTime=Math.min(0.1,(video.duration||1)*0.02); };
   }
@@ -404,7 +418,6 @@
     runtimeNote.innerHTML = engineSel.value==="ffmpeg"
       ? "Compatible mode re-encodes with ffmpeg — H.264 + AAC, plays everywhere. First export loads the encoder from this site (~31&nbsp;MB, cached after)."
       : "Fast mode captures in real time (about as long as the clip). Audio may be Opus, which some desktop players won't play — use Compatible if sound matters.";
-    updateSplitCount();
   });
 
   // ---- effective dims ----
@@ -500,48 +513,52 @@
   video.addEventListener("seeked",drawPreview);
   video.addEventListener("loadeddata",()=>{sizePreview();drawPreview();requestAnimationFrame(layout);});
   video.addEventListener("timeupdate",()=>{if(recording)return;if(video.duration)seek.value=String(Math.round(video.currentTime/video.duration*1000));timeEl.textContent=`${fmt(video.currentTime)} / ${fmt(video.duration||0)}`;renderPlayhead();});
-  video.addEventListener("durationchange",()=>{ if(isFinite(video.duration)&&(!trimEnd||trimEnd>video.duration))trimEnd=video.duration; renderTrim(); });
+  video.addEventListener("durationchange",()=>{ if(isFinite(video.duration)){ if(!timeline.length){initTimeline();} else { const last=timeline[timeline.length-1]; if(last.end>video.duration)last.end=video.duration; renderTimeline(); } } });
   seek.addEventListener("input",()=>{if(video.duration)video.currentTime=(+seek.value/1000)*video.duration;});
 
-  // ---- trim & split ----
-  function renderTrim(){
+  // ---- timeline (split / delete / join) ----
+  function initTimeline(){ const d=isFinite(video.duration)?video.duration:0; timeline=[{id:++segSeq,start:0,end:d}]; selSeg=null; renderTimeline(); }
+  function keptSegments(){ return timeline.slice().sort((a,b)=>a.start-b.start).map(s=>[s.start,s.end]); }
+  function keptDuration(){ return timeline.reduce((a,s)=>a+(s.end-s.start),0); }
+  function renderTimeline(){
     const d=video.duration||0;
-    if(!d||!isFinite(d)){trimsel.style.left="0";trimsel.style.width="100%";thStart.style.left="0";thEnd.style.left="100%";tStart.textContent="0:00";tEnd.textContent=fmt(d);tLen.textContent="full";updateSplitCount();return;}
-    const sp=clamp(trimStart/d*100,0,100), ep=clamp(trimEnd/d*100,0,100);
-    trimsel.style.left=sp+"%"; trimsel.style.width=Math.max(0,ep-sp)+"%";
-    thStart.style.left=sp+"%"; thEnd.style.left=ep+"%";
-    tStart.textContent=fmt(trimStart); tEnd.textContent=fmt(trimEnd);
-    const len=trimEnd-trimStart; tLen.textContent=(Math.abs(len-d)<0.06)?"full":fmt(len);
-    updateSplitCount();
+    // remove old segment blocks (keep the playhead element)
+    tlTrack.querySelectorAll(".tl-seg").forEach(el=>el.remove());
+    if(d&&isFinite(d)){
+      timeline.forEach(s=>{
+        const el=document.createElement("div"); el.className="tl-seg"+(s.id===selSeg?" sel":"");
+        el.style.left=(s.start/d*100)+"%"; el.style.width=Math.max(0.5,(s.end-s.start)/d*100)+"%";
+        el.title=`${fmt(s.start)}–${fmt(s.end)}`;
+        el.addEventListener("pointerdown",e=>{ e.stopPropagation(); selSeg=s.id; const r=tlTrack.getBoundingClientRect(); video.currentTime=clamp((e.clientX-r.left)/r.width,0,1)*d; renderTimeline(); syncControls(); });
+        tlTrack.appendChild(el);
+      });
+    }
+    tlCur.textContent=fmt(video.currentTime);
+    tlKept.textContent=`${fmt(keptDuration())} kept`;
+    tlTotal.textContent=fmt(d);
+    renderPlayhead(); syncControls();
   }
-  function renderPlayhead(){const d=video.duration||0;if(!d||!isFinite(d))return;trimplay.style.left=clamp(video.currentTime/d*100,0,100)+"%";}
-  function timeFromEvent(e){const r=trimbar.getBoundingClientRect();const x=clamp((e.clientX-r.left)/r.width,0,1);return x*(video.duration||0);}
-  let tdrag=null;
-  thStart.addEventListener("pointerdown",e=>{e.stopPropagation();tdrag="start";thStart.setPointerCapture(e.pointerId);});
-  thEnd.addEventListener("pointerdown",e=>{e.stopPropagation();tdrag="end";thEnd.setPointerCapture(e.pointerId);});
-  trimbar.addEventListener("pointerdown",e=>{if(tdrag)return;if(video.duration)video.currentTime=timeFromEvent(e);});
-  document.addEventListener("pointermove",e=>{
-    if(!tdrag)return; const t=timeFromEvent(e),d=video.duration||0,gap=0.3;
-    if(tdrag==="start")trimStart=clamp(t,0,trimEnd-gap); else trimEnd=clamp(t,trimStart+gap,d);
-    renderTrim();
+  function renderPlayhead(){ const d=video.duration||0; if(!d||!isFinite(d))return; tlPlay.style.left=clamp(video.currentTime/d*100,0,100)+"%"; tlCur.textContent=fmt(video.currentTime); syncControls(); }
+  function syncControls(){
+    tlDelete.disabled = !(selSeg&&timeline.length>1);
+    const seg=timeline.find(s=>video.currentTime>s.start+0.05&&video.currentTime<s.end-0.05);
+    tlSplit.disabled = !seg;
+  }
+  tlTrack.addEventListener("pointerdown",e=>{ if(e.target.classList.contains("tl-seg"))return; const d=video.duration||0; if(!d)return; const r=tlTrack.getBoundingClientRect(); video.currentTime=clamp((e.clientX-r.left)/r.width,0,1)*d; renderPlayhead(); syncControls(); });
+  tlSplit.addEventListener("click",()=>{
+    const t=video.currentTime; const seg=timeline.find(s=>t>s.start+0.05&&t<s.end-0.05);
+    if(!seg)return;
+    const ns={id:++segSeq,start:t,end:seg.end}; seg.end=t;
+    const i=timeline.indexOf(seg); timeline.splice(i+1,0,ns); selSeg=ns.id; renderTimeline();
   });
-  document.addEventListener("pointerup",()=>{tdrag=null;});
-  setStartBtn.addEventListener("click",()=>{trimStart=clamp(video.currentTime,0,trimEnd-0.3);renderTrim();});
-  setEndBtn.addEventListener("click",()=>{trimEnd=clamp(video.currentTime,trimStart+0.3,video.duration||0);renderTrim();});
-  splitSeg.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{splitSeg.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed","false"));b.setAttribute("aria-pressed","true");splitOn=b.dataset.split==="on";splitOpts.classList.toggle("hidden",!splitOn);updateSplitCount();}));
-  splitLenSel.addEventListener("change",updateSplitCount);
-  function buildSegments(){
-    const s0=trimStart, e0=(isFinite(trimEnd)&&trimEnd>0)?trimEnd:(video.duration||0), segs=[];
-    if(splitOn&&isFinite(e0)){const L=+splitLenSel.value;for(let s=s0;s<e0-0.05;s+=L)segs.push([s,Math.min(s+L,e0)]);}
-    if(!segs.length)segs.push([s0,e0]);
-    return segs;
-  }
-  function updateSplitCount(){
-    if(!splitOn){splitCount.textContent="";return;}
-    if(engineSel.value!=="ffmpeg"){splitCount.innerHTML="Splitting needs the <b>Compatible</b> engine — switch Engine below.";return;}
-    const n=buildSegments().length;
-    splitCount.textContent=`${n} clip${n!==1?"s":""} · up to ${fmt(+splitLenSel.value)} each`;
-  }
+  tlDelete.addEventListener("click",()=>{
+    if(!selSeg||timeline.length<=1)return;
+    const i=timeline.findIndex(s=>s.id===selSeg); if(i<0)return;
+    timeline.splice(i,1); selSeg=null; renderTimeline();
+  });
+  tlReset.addEventListener("click",initTimeline);
+  joinSeg.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{ joinSeg.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed","false")); b.setAttribute("aria-pressed","true"); joinMode=b.dataset.join==="one"; }));
+  function buildSegments(){ const segs=keptSegments(); return segs.length?segs:[[0,video.duration||0]]; }
 
   // ---- stickers ----
   const BUILTIN=[{n:"Subscribe",f:"subscribe"},{n:"Follow",f:"follow"},{n:"Like",f:"like"},{n:"Bell",f:"bell"},{n:"Arrow",f:"arrow"},{n:"Share",f:"share"}];
@@ -740,7 +757,8 @@
         await f.writeFile(sf.fsName,buf);
       }
       const codec=["-c:v","libx264","-preset","veryfast","-crf",crf,"-c:a","aac","-b:a","192k","-movflags","+faststart"];
-      const clips=[];
+      const join = joinMode && segs.length>1;
+      const clips=[]; const partNames=[];
       for(let i=0;i<segs.length;i++){
         segIndex=i;
         const [s,e]=segs[i]; const dur=Math.max(0.05,e-s); const outName=`out_${i}.mp4`;
@@ -748,9 +766,22 @@
         if(+fpsSel.value)args.push("-r",String(+fpsSel.value));
         args.push(outName);
         await f.exec(args);
-        const data=await f.readFile(outName);
-        try{await f.deleteFile(outName);}catch(_){}
-        clips.push({blob:new Blob([data.buffer],{type:"video/mp4"}),start:s,end:e});
+        partNames.push(outName);
+        if(!join){
+          const data=await f.readFile(outName);
+          try{await f.deleteFile(outName);}catch(_){}
+          clips.push({blob:new Blob([data.buffer],{type:"video/mp4"}),start:s,end:e});
+        }
+      }
+      if(join){
+        setProg(99,"Joining…");
+        const list=partNames.map(n=>`file '${n}'`).join("\n")+"\n";
+        await f.writeFile("concat.txt",new TextEncoder().encode(list));
+        await f.exec(["-f","concat","-safe","0","-i","concat.txt","-c","copy","joined.mp4"]);
+        const data=await f.readFile("joined.mp4");
+        clips.push({blob:new Blob([data.buffer],{type:"video/mp4"}),start:segs[0][0],end:segs[segs.length-1][1]});
+        try{await f.deleteFile("concat.txt");await f.deleteFile("joined.mp4");}catch(_){}
+        for(const n of partNames){try{await f.deleteFile(n);}catch(_){}}
       }
       try{await f.deleteFile(inName);}catch(_){}
       for(const sf of stickerFiles){try{await f.deleteFile(sf.fsName);}catch(_){}}
@@ -802,11 +833,13 @@
       clearClips(); clipUrls=[url];
       outVideo.src=url; dl.href=url; const base=fileName.replace(/\.[^.]+$/,"");
       dl.download=`${base}_${ratio.w===0?"original":ratio.w+"x"+ratio.h}.${ext}`;
-      const note=splitOn?" · splitting needs Compatible engine":"";
+      const segs=keptSegments(); const cut=segs.length>1;
+      const note=cut?" · precise cuts need Compatible engine":"";
       outMeta.textContent=`${out.w}×${out.h} · ${ext.toUpperCase()} · ${(blob.size/1048576).toFixed(1)} MB · ${Math.round(bitrate/1e6)} Mbps${note}`;
       result.classList.add("on"); endRec();
     };
-    const tStartSec=trimStart||0, tEndSec=(isFinite(trimEnd)&&trimEnd>tStartSec)?trimEnd:(video.duration||0);
+    const segs=keptSegments();
+    const tStartSec=segs.length?segs[0][0]:0, tEndSec=segs.length?segs[segs.length-1][1]:(video.duration||0);
     recording=true; recBadge.classList.add("on"); exportBtn.disabled=true; exportBtn.textContent="Encoding…"; progress.classList.add("on"); setProg(0,"Encoding…");
     clearClips();
     video.pause(); video.currentTime=tStartSec;
