@@ -277,13 +277,14 @@
           <button data-w="3" data-h="4">3:4<span class="sub">Portrait</span></button>
           <button data-w="16" data-h="9">16:9<span class="sub">Landscape</span></button>
           <button data-w="0" data-h="0">Original<span class="sub">Source</span></button>
-          <button data-w="c" id="customBtn">Custom<span class="sub">Any ratio</span></button>
+          <button data-w="c" id="customBtn">Custom<span class="sub">Free drag</span></button>
         </div>
         <div class="customrow hidden" id="customRow">
           <div class="field"><span class="cap">Width</span><input id="cW" class="num" type="number" min="0.1" step="0.1" value="4"></div>
           <span class="colon" style="margin-top:16px">:</span>
           <div class="field"><span class="cap">Height</span><input id="cH" class="num" type="number" min="0.1" step="0.1" value="5"></div>
         </div>
+        <p class="note" id="customHint" style="display:none">Drag any corner of the box to reshape it freely — the numbers just show the current ratio. Or type an exact ratio above.</p>
       </div>
 
       <div class="panel">
@@ -384,7 +385,7 @@
   const stkLayer=$("stkLayer"),stkGrid=$("stkGrid"),stkUpload=$("stkUpload");
   const fnameEl=$("fname"),srcInfo=$("srcinfo");
 
-  let ratio={w:9,h:16},mode="crop";
+  let ratio={w:9,h:16},mode="crop",freeCrop=false;
   let srcW=0,srcH=0,effW=0,effH=0;
   let rotation=0,flipped=false;
   let crop={x:0,y:0,w:0,h:0};
@@ -474,6 +475,18 @@
   document.addEventListener("pointermove",e=>{if(!drag)return;const dx=(e.clientX-drag.sx)/dispScale,dy=(e.clientY-drag.sy)/dispScale;if(drag.type==="move"){crop.x=clamp(drag.ox+dx,0,effW-crop.w);crop.y=clamp(drag.oy+dy,0,effH-crop.h);}else resizeCrop(drag.corner,dx,dy,drag.start);updateOverlay();});
   document.addEventListener("pointerup",()=>{drag=null;});
   function resizeCrop(corner,dx,dy,start){
+    if(freeCrop){
+      let x1=start.x, y1=start.y, x2=start.x+start.w, y2=start.y+start.h;
+      if(corner==="nw"){x1=start.x+dx;y1=start.y+dy;}
+      if(corner==="ne"){x2=start.x+start.w+dx;y1=start.y+dy;}
+      if(corner==="sw"){x1=start.x+dx;y2=start.y+start.h+dy;}
+      if(corner==="se"){x2=start.x+start.w+dx;y2=start.y+start.h+dy;}
+      x1=clamp(x1,0,effW);x2=clamp(x2,0,effW);y1=clamp(y1,0,effH);y2=clamp(y2,0,effH);
+      let nx=Math.min(x1,x2),ny=Math.min(y1,y2),nw=Math.max(20,Math.abs(x2-x1)),nh=Math.max(20,Math.abs(y2-y1));
+      if(nx+nw>effW)nx=effW-nw; if(ny+nh>effH)ny=effH-nh;
+      crop={x:clamp(nx,0,effW-nw),y:clamp(ny,0,effH-nh),w:nw,h:nh};
+      syncCustomFields(); return;
+    }
     const ar=ratio.w/ratio.h;let ax,ay;
     if(corner==="nw"){ax=start.x+start.w;ay=start.y+start.h;}if(corner==="ne"){ax=start.x;ay=start.y+start.h;}
     if(corner==="sw"){ax=start.x+start.w;ay=start.y;}if(corner==="se"){ax=start.x;ay=start.y;}
@@ -489,15 +502,21 @@
     if(ny+h>effH){h=effH-ny;w=h*ar;if(corner==="nw"||corner==="sw")nx=ax-w;}
     crop={x:clamp(nx,0,effW-w),y:clamp(ny,0,effH-h),w,h};
   }
+  function syncCustomFields(){
+    if(!freeCrop)return;
+    ratio={w:crop.w,h:crop.h};
+    const r=crop.w/crop.h;
+    if(r>=1){cW.value=r.toFixed(2);cH.value="1";}else{cW.value="1";cH.value=(1/r).toFixed(2);}
+  }
 
   ratiosBox.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{
     ratiosBox.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed","false"));
     b.setAttribute("aria-pressed","true");
     if(b.dataset.w==="c"){
-      customRow.classList.remove("hidden");
+      customRow.classList.remove("hidden"); freeCrop=true; $("customHint").style.display="block";
       const w=+cW.value,h=+cH.value; if(w>0&&h>0)ratio={w,h};
     }else{
-      customRow.classList.add("hidden"); ratio={w:+b.dataset.w,h:+b.dataset.h};
+      customRow.classList.add("hidden"); $("customHint").style.display="none"; freeCrop=false; ratio={w:+b.dataset.w,h:+b.dataset.h};
     }
     applyRatio(true);
   }));
