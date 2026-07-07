@@ -408,8 +408,11 @@
   fileInput.addEventListener("change",e=>{const f=e.target.files[0];if(f)loadFile(f);});
   newBtn.addEventListener("click",resetUI);
 
+  function banner(m){ const el=document.getElementById("fatal"); if(el){el.textContent="\u26A0 "+m; el.style.display="block";} }
+  video.addEventListener("error",()=>{ const e=video.error; banner("Video couldn't load"+(e?" (code "+e.code+")":"")+". Try a shorter clip or MP4."); });
   function loadFile(f){
-    if(!f.type.startsWith("video/")){showErr("That doesn't look like a video file.");return;}
+    const okType=(f.type||"").startsWith("video/")||f.type===""||/\.(mp4|mov|m4v|webm|mkv|avi|3gp|ts)$/i.test(f.name||"");
+    if(!okType){showErr("That doesn't look like a video file.");return;}
     hideErr(); fileName=f.name; currentFile=f; fnameEl.textContent=f.name; rotation=0; flipped=false;
     if(lastUrl)URL.revokeObjectURL(lastUrl);
     lastUrl=URL.createObjectURL(f); video.src=lastUrl;
@@ -444,7 +447,7 @@
     tctx.drawImage(video,-srcW*k/2,-srcH*k/2,srcW*k,srcH*k); tctx.restore();
   }
   function sizePreview(){ if(!effW)return; const cap=(window.innerWidth<820?640:960),k=Math.min(1,cap/Math.max(effW,effH)); preview.width=Math.max(2,Math.round(effW*k)); preview.height=Math.max(2,Math.round(effH*k)); }
-  function drawPreview(){ if(!effW)return; pctx.clearRect(0,0,preview.width,preview.height); drawRotated(pctx,preview.width,preview.height); }
+  function drawPreview(){ if(!effW)return; try{ pctx.clearRect(0,0,preview.width,preview.height); drawRotated(pctx,preview.width,preview.height); }catch(_){}}
 
   function layout(){ if(!effW)return; const pr=preview.getBoundingClientRect(),sr=stage.getBoundingClientRect(); dispScale=pr.width/effW; dispOffX=pr.left-sr.left; dispOffY=pr.top-sr.top; updateOverlay(); }
   window.addEventListener("resize",layout);
