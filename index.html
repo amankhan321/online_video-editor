@@ -181,6 +181,10 @@
   .tl-seg.sel{background:linear-gradient(180deg,#bcccff,#9db4ff);border-width:2px;box-shadow:0 0 0 2px rgba(27,70,255,.25)}
   .tl-play{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--rec);z-index:4;pointer-events:none;box-shadow:0 0 0 1px rgba(255,255,255,.6)}
   .tl-play::before{content:"";position:absolute;top:-4px;left:-4px;width:10px;height:10px;border-radius:50%;background:var(--rec)}
+  .tl-edge{position:absolute;top:0;bottom:0;width:12px;cursor:ew-resize;display:none;z-index:3;touch-action:none}
+  .tl-edge.l{left:-2px}.tl-edge.r{right:-2px}
+  .tl-edge::before{content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:4px;height:60%;border-radius:2px;background:var(--brand);box-shadow:0 0 0 2px #fff}
+  .tl-seg.sel .tl-edge{display:block}
   .tl-times{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--ink-soft);margin-top:9px}
   .tl-times .mid{color:var(--brand)}
   .tl-controls{display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap}
@@ -240,6 +244,8 @@
         <div class="tl-track" id="tlTrack"><div class="tl-play" id="tlPlay"></div></div>
         <div class="tl-times"><span id="tlCur">0:00</span><span class="mid" id="tlKept">0:00 kept</span><span id="tlTotal">0:00</span></div>
         <div class="tl-controls">
+          <button class="tlbtn" id="tlUndo" disabled><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-1"/></svg>Undo</button>
+          <button class="tlbtn" id="tlRedo" disabled><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14l5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h1"/></svg>Redo</button>
           <button class="tlbtn" id="tlSplit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12"/></svg>Split</button>
           <button class="tlbtn danger" id="tlDelete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Delete part</button>
           <button class="tlbtn" id="tlReset"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v4h4"/></svg>Reset</button>
@@ -365,7 +371,7 @@
   const progress=$("progress"),barFill=$("barFill"),plLabel=$("plLabel"),plPct=$("plPct");
   const result=$("result"),outVideo=$("outVideo"),dl=$("dl"),outMeta=$("outMeta"),errBox=$("err"),clipList=$("clipList");
   const tlTrack=$("tlTrack"),tlPlay=$("tlPlay"),tlCur=$("tlCur"),tlKept=$("tlKept"),tlTotal=$("tlTotal");
-  const tlSplit=$("tlSplit"),tlDelete=$("tlDelete"),tlReset=$("tlReset"),joinSeg=$("joinSeg"),tlHint=$("tlHint");
+  const tlSplit=$("tlSplit"),tlDelete=$("tlDelete"),tlReset=$("tlReset"),tlUndo=$("tlUndo"),tlRedo=$("tlRedo"),joinSeg=$("joinSeg"),tlHint=$("tlHint");
   const stkLayer=$("stkLayer"),stkGrid=$("stkGrid"),stkUpload=$("stkUpload");
   const fnameEl=$("fname"),srcInfo=$("srcinfo");
 
@@ -512,53 +518,100 @@
   video.addEventListener("pause",()=>{playing=false;if(!recording)playIco.innerHTML='<path d="M8 5v14l11-7z"/>';drawPreview();});
   video.addEventListener("seeked",drawPreview);
   video.addEventListener("loadeddata",()=>{sizePreview();drawPreview();requestAnimationFrame(layout);});
-  video.addEventListener("timeupdate",()=>{if(recording)return;if(video.duration)seek.value=String(Math.round(video.currentTime/video.duration*1000));timeEl.textContent=`${fmt(video.currentTime)} / ${fmt(video.duration||0)}`;renderPlayhead();});
+  video.addEventListener("timeupdate",()=>{if(recording)return;previewSkip();if(video.duration)seek.value=String(Math.round(video.currentTime/video.duration*1000));timeEl.textContent=`${fmt(video.currentTime)} / ${fmt(video.duration||0)}`;renderPlayhead();});
   video.addEventListener("durationchange",()=>{ if(isFinite(video.duration)){ if(!timeline.length){initTimeline();} else { const last=timeline[timeline.length-1]; if(last.end>video.duration)last.end=video.duration; renderTimeline(); } } });
   seek.addEventListener("input",()=>{if(video.duration)video.currentTime=(+seek.value/1000)*video.duration;});
 
   // ---- timeline (split / delete / join) ----
-  function initTimeline(){ const d=isFinite(video.duration)?video.duration:0; timeline=[{id:++segSeq,start:0,end:d}]; selSeg=null; renderTimeline(); }
+  let undoStack=[],redoStack=[];
+  function snap(){ return JSON.stringify(timeline); }
+  function pushUndo(){ undoStack.push(snap()); if(undoStack.length>60)undoStack.shift(); redoStack=[]; updateUndoBtns(); }
+  function updateUndoBtns(){ tlUndo.disabled=!undoStack.length; tlRedo.disabled=!redoStack.length; }
+  function doUndo(){ if(!undoStack.length)return; redoStack.push(snap()); timeline=JSON.parse(undoStack.pop()); selSeg=null; renderTimeline(); updateUndoBtns(); }
+  function doRedo(){ if(!redoStack.length)return; undoStack.push(snap()); timeline=JSON.parse(redoStack.pop()); selSeg=null; renderTimeline(); updateUndoBtns(); }
+
+  function initTimeline(){ const d=isFinite(video.duration)?video.duration:0; timeline=[{id:++segSeq,start:0,end:d}]; selSeg=null; undoStack=[]; redoStack=[]; updateUndoBtns(); renderTimeline(); }
+  function sortTL(){ timeline.sort((a,b)=>a.start-b.start); }
   function keptSegments(){ return timeline.slice().sort((a,b)=>a.start-b.start).map(s=>[s.start,s.end]); }
   function keptDuration(){ return timeline.reduce((a,s)=>a+(s.end-s.start),0); }
+
   function renderTimeline(){
     const d=video.duration||0;
-    // remove old segment blocks (keep the playhead element)
     tlTrack.querySelectorAll(".tl-seg").forEach(el=>el.remove());
     if(d&&isFinite(d)){
+      sortTL();
       timeline.forEach(s=>{
-        const el=document.createElement("div"); el.className="tl-seg"+(s.id===selSeg?" sel":"");
-        el.style.left=(s.start/d*100)+"%"; el.style.width=Math.max(0.5,(s.end-s.start)/d*100)+"%";
+        const el=document.createElement("div"); el.className="tl-seg"+(s.id===selSeg?" sel":""); s.el=el;
         el.title=`${fmt(s.start)}–${fmt(s.end)}`;
-        el.addEventListener("pointerdown",e=>{ e.stopPropagation(); selSeg=s.id; const r=tlTrack.getBoundingClientRect(); video.currentTime=clamp((e.clientX-r.left)/r.width,0,1)*d; renderTimeline(); syncControls(); });
+        el.addEventListener("pointerdown",e=>{ if(e.target.classList.contains("tl-edge"))return; e.stopPropagation(); selSeg=s.id; const r=tlTrack.getBoundingClientRect(); video.currentTime=clamp((e.clientX-r.left)/r.width,0,1)*d; renderTimeline(); });
+        const le=document.createElement("div"); le.className="tl-edge l"; el.appendChild(le);
+        const re=document.createElement("div"); re.className="tl-edge r"; el.appendChild(re);
+        le.addEventListener("pointerdown",ev=>beginEdge(s,"l",ev));
+        re.addEventListener("pointerdown",ev=>beginEdge(s,"r",ev));
         tlTrack.appendChild(el);
       });
     }
-    tlCur.textContent=fmt(video.currentTime);
-    tlKept.textContent=`${fmt(keptDuration())} kept`;
-    tlTotal.textContent=fmt(d);
-    renderPlayhead(); syncControls();
+    positionSegments(); syncControls();
+  }
+  function positionSegments(){
+    const d=video.duration||0; if(!d||!isFinite(d))return;
+    timeline.forEach(s=>{ if(s.el){ s.el.style.left=(s.start/d*100)+"%"; s.el.style.width=Math.max(0.5,(s.end-s.start)/d*100)+"%"; s.el.title=`${fmt(s.start)}–${fmt(s.end)}`; } });
+    tlKept.textContent=`${fmt(keptDuration())} kept`; tlTotal.textContent=fmt(d); tlCur.textContent=fmt(video.currentTime);
+    renderPlayhead();
   }
   function renderPlayhead(){ const d=video.duration||0; if(!d||!isFinite(d))return; tlPlay.style.left=clamp(video.currentTime/d*100,0,100)+"%"; tlCur.textContent=fmt(video.currentTime); syncControls(); }
   function syncControls(){
-    tlDelete.disabled = !(selSeg&&timeline.length>1);
+    tlDelete.disabled=!(selSeg&&timeline.length>1);
     const seg=timeline.find(s=>video.currentTime>s.start+0.05&&video.currentTime<s.end-0.05);
-    tlSplit.disabled = !seg;
+    tlSplit.disabled=!seg;
   }
-  tlTrack.addEventListener("pointerdown",e=>{ if(e.target.classList.contains("tl-seg"))return; const d=video.duration||0; if(!d)return; const r=tlTrack.getBoundingClientRect(); video.currentTime=clamp((e.clientX-r.left)/r.width,0,1)*d; renderPlayhead(); syncControls(); });
+  function beginEdge(s,side,ev){
+    ev.stopPropagation(); selSeg=s.id; pushUndo();
+    const d=video.duration||0, r=tlTrack.getBoundingClientRect();
+    sortTL(); const idx=timeline.indexOf(s);
+    const lo=idx>0?timeline[idx-1].end:0, hi=idx<timeline.length-1?timeline[idx+1].start:d;
+    ev.target.setPointerCapture(ev.pointerId);
+    const move=e2=>{
+      const t=clamp((e2.clientX-r.left)/r.width,0,1)*d;
+      if(side==="l")s.start=clamp(t,lo,s.end-0.2); else s.end=clamp(t,s.start+0.2,hi);
+      video.currentTime=side==="l"?s.start:s.end; positionSegments();
+    };
+    const up=()=>{document.removeEventListener("pointermove",move);document.removeEventListener("pointerup",up);};
+    document.addEventListener("pointermove",move); document.addEventListener("pointerup",up);
+  }
+  tlTrack.addEventListener("pointerdown",e=>{ if(e.target.classList.contains("tl-seg")||e.target.classList.contains("tl-edge"))return; const d=video.duration||0; if(!d)return; const r=tlTrack.getBoundingClientRect(); video.currentTime=clamp((e.clientX-r.left)/r.width,0,1)*d; renderPlayhead(); });
   tlSplit.addEventListener("click",()=>{
     const t=video.currentTime; const seg=timeline.find(s=>t>s.start+0.05&&t<s.end-0.05);
-    if(!seg)return;
+    if(!seg)return; pushUndo();
     const ns={id:++segSeq,start:t,end:seg.end}; seg.end=t;
     const i=timeline.indexOf(seg); timeline.splice(i+1,0,ns); selSeg=ns.id; renderTimeline();
   });
   tlDelete.addEventListener("click",()=>{
-    if(!selSeg||timeline.length<=1)return;
+    if(!selSeg||timeline.length<=1)return; pushUndo();
     const i=timeline.findIndex(s=>s.id===selSeg); if(i<0)return;
     timeline.splice(i,1); selSeg=null; renderTimeline();
   });
-  tlReset.addEventListener("click",initTimeline);
+  tlReset.addEventListener("click",()=>{ pushUndo(); const d=isFinite(video.duration)?video.duration:0; timeline=[{id:++segSeq,start:0,end:d}]; selSeg=null; renderTimeline(); });
+  tlUndo.addEventListener("click",doUndo);
+  tlRedo.addEventListener("click",doRedo);
+  document.addEventListener("keydown",e=>{
+    if(editor.classList.contains("hidden"))return;
+    const tag=(e.target.tagName||"").toLowerCase(); if(tag==="input"||tag==="select"||tag==="textarea")return;
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="z"){ e.preventDefault(); e.shiftKey?doRedo():doUndo(); }
+    else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="y"){ e.preventDefault(); doRedo(); }
+  });
   joinSeg.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{ joinSeg.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed","false")); b.setAttribute("aria-pressed","true"); joinMode=b.dataset.join==="one"; }));
   function buildSegments(){ const segs=keptSegments(); return segs.length?segs:[[0,video.duration||0]]; }
+  // preview skips deleted gaps in real time
+  function previewSkip(){
+    if(video.paused||recording||!timeline.length)return;
+    const t=video.currentTime, eps=0.02;
+    const inKept=timeline.some(s=>t>=s.start-eps&&t<s.end-0.001);
+    if(inKept)return;
+    sortTL();
+    const next=timeline.map(s=>s.start).filter(st=>st>t+0.001).sort((a,b)=>a-b)[0];
+    if(next!==undefined)video.currentTime=next; else video.pause();
+  }
 
   // ---- stickers ----
   const BUILTIN=[{n:"Subscribe",f:"subscribe"},{n:"Follow",f:"follow"},{n:"Like",f:"like"},{n:"Bell",f:"bell"},{n:"Arrow",f:"arrow"},{n:"Share",f:"share"}];
