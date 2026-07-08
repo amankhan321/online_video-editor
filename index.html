@@ -334,10 +334,14 @@
           <div class="field"><p class="label">Frame rate</p>
             <select id="fps"><option value="0">Match source</option><option value="30">30 · smaller file</option></select></div>
         </div>
-        <div class="field" style="margin-top:10px"><p class="label">Enhance</p>
-          <select id="enhance"><option value="off" selected>Off · keep original look</option><option value="subtle">Subtle pop</option><option value="punchy">Punchy</option></select></div>
+        <div class="row2" style="margin-top:10px">
+          <div class="field"><p class="label">Enhance</p>
+            <select id="enhance"><option value="off" selected>Off · keep original look</option><option value="subtle">Subtle pop</option><option value="punchy">Punchy</option></select></div>
+          <div class="field"><p class="label">Encode speed</p>
+            <select id="speed"><option value="ultrafast" selected>Fastest · bigger file</option><option value="veryfast">Balanced</option><option value="medium">Smallest file · slow</option></select></div>
+        </div>
         <button id="export" class="btn-primary">Export portrait clip</button>
-        <div class="runtime-note" id="runtimeNote">Compatible mode re-encodes with ffmpeg — H.264 + AAC, plays everywhere. Uses all your CPU cores when supported (much faster). First export loads the encoder (~32First export loads the encoder from this site (~31&nbsp;MB, cached after).nbsp;MB, cached after).</div>
+        <div class="runtime-note" id="runtimeNote">Compatible mode re-encodes with ffmpeg — H.264 + AAC, plays everywhere. First export downloads the encoder (~31&nbsp;MB, one time, then cached).</div>
         <button id="reset" class="btn-ghost">Reset crop</button>
         <button id="newfile" class="btn-ghost">Use a different video</button>
 
@@ -375,7 +379,7 @@
   const dimBadge=$("dimBadge"),recBadge=$("rec");
   const playBtn=$("play"),playIco=$("playIco"),seek=$("seek"),timeEl=$("time");
   const ratiosBox=$("ratios"),customBtn=$("customBtn"),customRow=$("customRow"),cW=$("cW"),cH=$("cH"),modeSeg=$("modeSeg"),modeNote=$("modeNote");
-  const engineSel=$("engine"),resSel=$("res"),qualitySel=$("quality"),fmtSel=$("fmt"),fpsSel=$("fps"),enhanceSel=$("enhance");
+  const engineSel=$("engine"),resSel=$("res"),qualitySel=$("quality"),fmtSel=$("fmt"),fpsSel=$("fps"),enhanceSel=$("enhance"),speedSel=$("speed");
   const exportBtn=$("export"),resetBtn=$("reset"),newBtn=$("newfile"),runtimeNote=$("runtimeNote");
   const rotL=$("rotL"),rotR=$("rotR"),flipBtn=$("flipH");
   const progress=$("progress"),barFill=$("barFill"),plLabel=$("plLabel"),plPct=$("plPct");
@@ -435,7 +439,7 @@
 
   engineSel.addEventListener("change",()=>{
     runtimeNote.innerHTML = engineSel.value==="ffmpeg"
-      ? "Compatible mode re-encodes with ffmpeg — H.264 + AAC, plays everywhere. Uses all your CPU cores when supported (much faster). First export loads the encoder (~32First export loads the encoder from this site (~31&nbsp;MB, cached after).nbsp;MB, cached after)."
+      ? "Compatible mode re-encodes with ffmpeg — H.264 + AAC, plays everywhere. First export downloads the encoder (~31&nbsp;MB, one time, then cached)."
       : "Fast mode captures in real time (about as long as the clip). Audio may be Opus, which some desktop players won't play — use Compatible if sound matters.";
   });
 
@@ -849,7 +853,7 @@
         const buf=new Uint8Array(await (await fetch(sf.src)).arrayBuffer());
         await f.writeFile(sf.fsName,buf);
       }
-      const codec=["-c:v","libx264","-preset","veryfast","-crf",crf,"-c:a","aac","-b:a","192k","-movflags","+faststart"];
+      const codec=["-c:v","libx264","-preset",(speedSel&&speedSel.value)||"ultrafast","-crf",crf,"-c:a","aac","-b:a","192k","-movflags","+faststart"];
       const join = joinMode && segs.length>1;
       const clips=[]; const partNames=[];
       for(let i=0;i<segs.length;i++){
