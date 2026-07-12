@@ -38,8 +38,24 @@
   .drop p{margin:0;color:var(--ink-soft);font-size:14px}
   .drop .hint{font-family:var(--mono);font-size:11px;color:var(--ink-faint);margin-top:14px;letter-spacing:.03em}
 
-  .editor{display:grid;grid-template-columns:1fr 348px;gap:22px;align-items:start;margin-top:26px}
-  @media (max-width:900px){.editor{grid-template-columns:1fr}}
+  /* CapCut-style shell: rail | props | stage  (timeline spans full width below) */
+  .editor{display:grid;grid-template-columns:84px 320px 1fr;grid-template-areas:"rail props stage" "tl tl tl";gap:16px;align-items:start;margin-top:26px}
+  .rail{grid-area:rail;display:flex;flex-direction:column;gap:6px;background:var(--bg);border:1px solid var(--line);border-radius:16px;padding:8px;position:sticky;top:16px}
+  .railbtn{display:flex;flex-direction:column;align-items:center;gap:5px;padding:11px 4px;border:0;background:transparent;border-radius:11px;cursor:pointer;color:var(--ink-soft);transition:.12s}
+  .railbtn svg{width:21px;height:21px}
+  .railbtn span{font-size:10.5px;font-weight:600;letter-spacing:.01em}
+  .railbtn:hover{background:var(--paper);color:var(--ink)}
+  .railbtn[aria-pressed=true]{background:#eef1ff;color:var(--brand)}
+  .props{grid-area:props;min-width:0}
+  .toolpane{display:none}
+  .toolpane.on{display:block}
+  .stagewrap{grid-area:stage;min-width:0}
+  .tlwrap{grid-area:tl;min-width:0;margin-top:4px}
+  @media (max-width:1000px){
+    .editor{grid-template-columns:1fr;grid-template-areas:"stage" "rail" "props" "tl"}
+    .rail{flex-direction:row;overflow-x:auto;position:static}
+    .railbtn{flex:1;min-width:64px}
+  }
 
   .stage-card{background:var(--bg);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 18px 50px -34px rgba(20,20,40,.35)}
   .stage-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 15px;border-bottom:1px solid var(--line);background:var(--paper);font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--ink-soft)}
@@ -235,68 +251,16 @@
   </div>
 
   <div id="editor" class="editor hidden">
-    <div class="vidcol">
-    <div class="stage-card">
-      <div class="stage-bar"><span class="fname" id="fname">clip.mp4</span><span id="srcinfo">—</span></div>
-      <div class="stage" id="stage">
-        <span class="bracket tl"></span><span class="bracket tr"></span><span class="bracket bl"></span><span class="bracket br"></span>
-        <canvas id="preview"></canvas>
-        <video id="video" playsinline muted></video>
-        <div class="ov" id="overlay">
-          <div class="crop" id="crop">
-            <div class="thirds"><span class="v1"></span><span class="v2"></span><span class="h1"></span><span class="h2"></span></div>
-            <div class="h nw" data-h="nw"></div><div class="h ne" data-h="ne"></div><div class="h sw" data-h="sw"></div><div class="h se" data-h="se"></div>
-          </div>
-        </div>
-        <div class="stklayer" id="stkLayer"></div>
-        <div class="dim-badge" id="dimBadge">—</div>
-        <div class="rec" id="rec"><span class="dot"></span>ENCODING</div>
-      </div>
-      <div class="scrub">
-        <button id="play" aria-label="Play / pause"><svg id="playIco" width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
-        <input id="seek" type="range" min="0" max="1000" value="0" aria-label="Seek" />
-        <span class="t" id="time">0:00 / 0:00</span>
-      </div>
+    <div class="rail" id="rail">
+      <button class="railbtn" data-tool="frame" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 4v16M4 9h16" opacity=".4"/></svg><span>Frame</span></button>
+      <button class="railbtn" data-tool="rotate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v4h-4"/></svg><span>Rotate</span></button>
+      <button class="railbtn" data-tool="effects"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 4.6L18.5 9l-4.6 1.9L12 15l-1.9-4.1L5.5 9l4.6-1.4z"/><path d="M18 15l.8 2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-1z"/></svg><span>Effects</span></button>
+      <button class="railbtn" data-tool="stickers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M20 12a8 8 0 1 0-8 8c0-4 4-2 6-4s2-4 2-4z"/><circle cx="9.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><circle cx="14.5" cy="10" r="1.1" fill="currentColor" stroke="none"/></svg><span>Stickers</span></button>
+      <button class="railbtn" data-tool="export"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12M12 16l-4-4M12 16l4-4"/><path d="M4 20h16"/></svg><span>Export</span></button>
     </div>
-
-      <div class="timeline-card">
-        <div class="tl-head"><span class="tl-title">Timeline</span><span class="tl-hint" id="tlHint">Scrub, hit Split, then select a part and Delete to cut it out</span></div>
-        <div class="tl-track" id="tlTrack"><div class="tl-play" id="tlPlay"></div></div>
-        <div class="tl-times"><span id="tlCur">0:00</span><span class="mid" id="tlKept">0:00 kept</span><span id="tlTotal">0:00</span></div>
-        <div class="tl-controls">
-          <button class="tlbtn" id="tlUndo" disabled><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-1"/></svg>Undo</button>
-          <button class="tlbtn" id="tlRedo" disabled><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14l5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h1"/></svg>Redo</button>
-          <button class="tlbtn" id="tlSplit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12"/></svg>Split</button>
-          <button class="tlbtn danger" id="tlDelete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Delete part</button>
-          <button class="tlbtn" id="tlReset"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v4h4"/></svg>Reset</button>
-          <select id="tlZoom" class="tlspeed" title="Zoom effect on the selected part" disabled>
-            <option value="none">No zoom</option>
-            <option value="in">Zoom in (slow push)</option>
-            <option value="out">Zoom out (pull back)</option>
-            <option value="punch">Punch in (quick)</option>
-          </select>
-          <select id="tlSpeed" class="tlspeed" title="Speed of the selected part" disabled>
-            <option value="1">Speed 1×</option>
-            <option value="0.5">0.5× slow-mo</option>
-            <option value="1.25">1.25×</option>
-            <option value="1.5">1.5×</option>
-            <option value="2">2×</option>
-            <option value="3">3×</option>
-            <option value="4">4×</option>
-          </select>
-          <span class="tl-spacer"></span>
-          <div class="seg" id="joinSeg">
-            <button data-join="one" aria-pressed="true">Join to one</button>
-            <button data-join="sep">Separate clips</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div>
-      <div class="panel">
-        <p class="label sec-label">Aspect ratio</p>
-        <div class="ratios" id="ratios">
+    <div class="props" id="props">
+      <div class="toolpane" data-pane="frame">
+<div class="panel">        <div class="ratios" id="ratios">
           <button data-w="9" data-h="16" aria-pressed="true">9:16<span class="sub">Reels · TikTok</span></button>
           <button data-w="4" data-h="5">4:5<span class="sub">Feed</span></button>
           <button data-w="1" data-h="1">1:1<span class="sub">Square</span></button>
@@ -312,10 +276,7 @@
         </div>
         <p class="note" id="customHint" style="display:none">Drag any corner of the box to reshape it freely — the numbers just show the current ratio. Or type an exact ratio above.</p>
       </div>
-
-      <div class="panel">
-        <p class="label sec-label">Reframe mode</p>
-        <div class="seg" id="modeSeg">
+<div class="panel">        <div class="seg" id="modeSeg">
           <button data-mode="crop" aria-pressed="true">Crop</button>
           <button data-mode="blur">Fit + blur</button>
         </div>
@@ -323,20 +284,21 @@
         <button class="btn-ghost" id="autoFrame" style="margin-top:12px">✨ Auto reframe — find the subject</button>
         <p class="note" id="autoNote" style="display:none"></p>
       </div>
-
-      <div class="panel">
-        <p class="label sec-label">Orientation</p>
-        <div class="seg three" id="orient">
+      </div>
+      <div class="toolpane" data-pane="rotate">
+<div class="panel">        <div class="seg three" id="orient">
           <button id="rotL"><span class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v4h4"/></svg>Left</span></button>
           <button id="rotR"><span class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v4h-4"/></svg>Right</span></button>
           <button id="flipH"><span class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M16 7l4 5-4 5"/><path d="M8 7l-4 5 4 5"/></svg>Flip</span></button>
         </div>
         <p class="note" id="rotNote">Sideways clip? Rotate it upright before you crop — rotation is baked into the export.</p>
       </div>
-
-      <div class="panel">
-        <p class="label sec-label">Stickers</p>
-        <div class="stkgrid" id="stkGrid"></div>
+      </div>
+      <div class="toolpane" data-pane="effects">
+<div class="panel"><p class="label">Clip effects</p><p class="note">Select a part on the timeline below, then set its <b>Speed</b> and <b>Zoom</b> there. Effects apply per part, so you can punch in on your hook and speed through the slow bits.</p></div>
+      </div>
+      <div class="toolpane" data-pane="stickers">
+<div class="panel">        <div class="stkgrid" id="stkGrid"></div>
         <label class="stkupload">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
           Upload your own (GIF / PNG)
@@ -344,10 +306,9 @@
         </label>
         <p class="note">Tap to add, drag to place, corner to resize, × to remove. Baked into the export.</p>
       </div>
-
-      <div class="panel">
-        <p class="label sec-label">Export</p>
-        <div class="field"><p class="label">Engine</p>
+      </div>
+      <div class="toolpane" data-pane="export">
+<div class="panel">        <div class="field"><p class="label">Engine</p>
           <select id="engine"><option value="ffmpeg" selected>Compatible · H.264 + AAC</option><option value="recorder">Fast · real-time capture</option></select>
         </div>
         <div class="row2" style="margin-top:10px">
@@ -380,6 +341,65 @@
           <a class="dl" id="dl" download><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12M12 16l-4-4M12 16l4-4"/><path d="M4 20h16"/></svg>Download</a>
           <div class="meta" id="outMeta"></div>
           <div id="clipList"></div>
+        </div>
+      </div>
+      </div>
+    </div>
+    <div class="stagewrap">
+<div class="stage-card">
+      <div class="stage-bar"><span class="fname" id="fname">clip.mp4</span><span id="srcinfo">—</span></div>
+      <div class="stage" id="stage">
+        <span class="bracket tl"></span><span class="bracket tr"></span><span class="bracket bl"></span><span class="bracket br"></span>
+        <canvas id="preview"></canvas>
+        <video id="video" playsinline muted></video>
+        <div class="ov" id="overlay">
+          <div class="crop" id="crop">
+            <div class="thirds"><span class="v1"></span><span class="v2"></span><span class="h1"></span><span class="h2"></span></div>
+            <div class="h nw" data-h="nw"></div><div class="h ne" data-h="ne"></div><div class="h sw" data-h="sw"></div><div class="h se" data-h="se"></div>
+          </div>
+        </div>
+        <div class="stklayer" id="stkLayer"></div>
+        <div class="dim-badge" id="dimBadge">—</div>
+        <div class="rec" id="rec"><span class="dot"></span>ENCODING</div>
+      </div>
+      <div class="scrub">
+        <button id="play" aria-label="Play / pause"><svg id="playIco" width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
+        <input id="seek" type="range" min="0" max="1000" value="0" aria-label="Seek" />
+        <span class="t" id="time">0:00 / 0:00</span>
+      </div>
+    </div>
+    </div>
+    <div class="tlwrap">
+<div class="timeline-card">
+        <div class="tl-head"><span class="tl-title">Timeline</span><span class="tl-hint" id="tlHint">Scrub, hit Split, then select a part and Delete to cut it out</span></div>
+        <div class="tl-track" id="tlTrack"><div class="tl-play" id="tlPlay"></div></div>
+        <div class="tl-times"><span id="tlCur">0:00</span><span class="mid" id="tlKept">0:00 kept</span><span id="tlTotal">0:00</span></div>
+        <div class="tl-controls">
+          <button class="tlbtn" id="tlUndo" disabled><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-1"/></svg>Undo</button>
+          <button class="tlbtn" id="tlRedo" disabled><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14l5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h1"/></svg>Redo</button>
+          <button class="tlbtn" id="tlSplit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12"/></svg>Split</button>
+          <button class="tlbtn danger" id="tlDelete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Delete part</button>
+          <button class="tlbtn" id="tlReset"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v4h4"/></svg>Reset</button>
+          <select id="tlZoom" class="tlspeed" title="Zoom effect on the selected part" disabled>
+            <option value="none">No zoom</option>
+            <option value="in">Zoom in (slow push)</option>
+            <option value="out">Zoom out (pull back)</option>
+            <option value="punch">Punch in (quick)</option>
+          </select>
+          <select id="tlSpeed" class="tlspeed" title="Speed of the selected part" disabled>
+            <option value="1">Speed 1×</option>
+            <option value="0.5">0.5× slow-mo</option>
+            <option value="1.25">1.25×</option>
+            <option value="1.5">1.5×</option>
+            <option value="2">2×</option>
+            <option value="3">3×</option>
+            <option value="4">4×</option>
+          </select>
+          <span class="tl-spacer"></span>
+          <div class="seg" id="joinSeg">
+            <button data-join="one" aria-pressed="true">Join to one</button>
+            <button data-join="sep">Separate clips</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1145,21 +1165,17 @@
   function hideErr(){errBox.classList.remove("on");}
 
   ["dragover","drop"].forEach(ev=>window.addEventListener(ev,e=>{ if(!e.target.closest("#dropzone")) e.preventDefault(); },false));
-  // ---- collapsible sections (keeps the sidebar manageable as features grow) ----
+
+  // ---- tool rail: swap the properties pane ----
   (function(){
-    const OPEN={"Aspect ratio":1,"Reframe mode":1,"Export":1};
-    document.querySelectorAll(".panel > .sec-label").forEach(lab=>{
-      const panel=lab.parentElement, title=lab.textContent.trim();
-      const head=document.createElement("button");
-      head.className="sec-head"; head.type="button";
-      head.innerHTML=`<span>${title}</span><svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>`;
-      const body=document.createElement("div"); body.className="sec-body";
-      while(lab.nextSibling)body.appendChild(lab.nextSibling);
-      lab.remove(); panel.appendChild(head); panel.appendChild(body);
-      const open=!!OPEN[title];
-      panel.classList.toggle("closed",!open);
-      head.addEventListener("click",()=>panel.classList.toggle("closed"));
-    });
+    const rail=document.getElementById("rail"), panes=document.querySelectorAll(".toolpane");
+    function show(name){
+      rail.querySelectorAll(".railbtn").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.tool===name)));
+      panes.forEach(p=>p.classList.toggle("on",p.dataset.pane===name));
+      requestAnimationFrame(layout);
+    }
+    rail.querySelectorAll(".railbtn").forEach(b=>b.addEventListener("click",()=>show(b.dataset.tool)));
+    show("frame");
   })();
 
   const ro=new ResizeObserver(()=>layout()); ro.observe(stage);
