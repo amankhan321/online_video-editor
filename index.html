@@ -196,6 +196,9 @@
   #joinSeg{width:230px;flex:0 0 auto}
   @media (max-width:520px){#joinSeg{width:100%;margin-top:4px}}
   #fatal{display:none;position:fixed;left:0;right:0;top:0;z-index:99999;background:#b42318;color:#fff;font-family:var(--mono);font-size:12px;line-height:1.4;padding:10px 14px;white-space:pre-wrap;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+  .tlspeed{width:auto;padding:9px 30px 9px 12px;font-family:var(--sans);font-size:13px;font-weight:600;border-radius:10px}
+  .tlspeed:disabled{opacity:.45;cursor:not-allowed}
+  .tl-badge{position:absolute;top:3px;left:4px;background:var(--ink);color:#fff;font-family:var(--mono);font-size:9px;padding:2px 5px;border-radius:5px;z-index:2;pointer-events:none}
   .hidden{display:none!important}
 </style>
 </head>
@@ -258,6 +261,15 @@
           <button class="tlbtn" id="tlSplit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12"/></svg>Split</button>
           <button class="tlbtn danger" id="tlDelete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Delete part</button>
           <button class="tlbtn" id="tlReset"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v4h4"/></svg>Reset</button>
+          <select id="tlSpeed" class="tlspeed" title="Speed of the selected part" disabled>
+            <option value="1">Speed 1×</option>
+            <option value="0.5">0.5× slow-mo</option>
+            <option value="1.25">1.25×</option>
+            <option value="1.5">1.5×</option>
+            <option value="2">2×</option>
+            <option value="3">3×</option>
+            <option value="4">4×</option>
+          </select>
           <span class="tl-spacer"></span>
           <div class="seg" id="joinSeg">
             <button data-join="one" aria-pressed="true">Join to one</button>
@@ -294,6 +306,8 @@
           <button data-mode="blur">Fit + blur</button>
         </div>
         <p class="note" id="modeNote"><b>Crop:</b> drag the box to pick exactly which part of the frame to keep.</p>
+        <button class="btn-ghost" id="autoFrame" style="margin-top:12px">✨ Auto reframe — find the subject</button>
+        <p class="note" id="autoNote" style="display:none"></p>
       </div>
 
       <div class="panel">
@@ -385,7 +399,7 @@
   const progress=$("progress"),barFill=$("barFill"),plLabel=$("plLabel"),plPct=$("plPct");
   const result=$("result"),outVideo=$("outVideo"),dl=$("dl"),outMeta=$("outMeta"),errBox=$("err"),clipList=$("clipList");
   const tlTrack=$("tlTrack"),tlPlay=$("tlPlay"),tlCur=$("tlCur"),tlKept=$("tlKept"),tlTotal=$("tlTotal");
-  const tlSplit=$("tlSplit"),tlDelete=$("tlDelete"),tlReset=$("tlReset"),tlUndo=$("tlUndo"),tlRedo=$("tlRedo"),joinSeg=$("joinSeg"),tlHint=$("tlHint");
+  const tlSplit=$("tlSplit"),tlDelete=$("tlDelete"),tlReset=$("tlReset"),tlUndo=$("tlUndo"),tlRedo=$("tlRedo"),tlSpeed=$("tlSpeed"),joinSeg=$("joinSeg"),tlHint=$("tlHint");
   const stkLayer=$("stkLayer"),stkGrid=$("stkGrid"),stkUpload=$("stkUpload");
   const fnameEl=$("fname"),srcInfo=$("srcinfo");
 
@@ -537,6 +551,62 @@
   rotR.addEventListener("click",()=>applyRotation(90));
   flipBtn.addEventListener("click",()=>{flipped=!flipped;flipBtn.setAttribute("aria-pressed",String(flipped));drawPreview();rotLabel();});
 
+  // ---- auto reframe: find the most "interesting" region across sampled frames ----
+  const autoFrameBtn=$("autoFrame"),autoNote=$("autoNote");
+  autoFrameBtn.addEventListener("click",async()=>{
+    if(!effW||mode!=="crop"||ratio.w===0){ autoNote.style.display="block"; autoNote.textContent="Auto reframe works in Crop mode with a ratio selected."; return; }
+    const wasPaused=video.paused; video.pause();
+    autoFrameBtn.disabled=true; autoFrameBtn.textContent="Analysing…"; autoNote.style.display="block"; autoNote.textContent="Scanning the clip for the subject…";
+    const keep=video.currentTime;
+    try{
+      const N=12, W=160, H=Math.max(2,Math.round(160*effH/effW));
+      const c=document.createElement("canvas"); c.width=W; c.height=H; const cx2=c.getContext("2d",{willReadFrequently:true});
+      const colScore=new Float64Array(W), rowScore=new Float64Array(H);
+      let prev=null;
+      const segs=keptSegments(); const t0=segs.length?segs[0][0]:0, t1=segs.length?segs[segs.length-1][1]:(video.duration||0);
+      for(let i=0;i<N;i++){
+        const t=t0+((t1-t0)*(i+0.5)/N);
+        await new Promise(r=>{const fn=()=>{video.removeEventListener("seeked",fn);r();};video.addEventListener("seeked",fn);video.currentTime=clamp(t,0,video.duration||0);});
+        cx2.clearRect(0,0,W,H); cx2.save(); cx2.translate(W/2,H/2); cx2.rotate(rotation*Math.PI/180); if(flipped)cx2.scale(-1,1);
+        const k=(rotation===90||rotation===270)?(H/srcH):(W/srcW);
+        try{ cx2.drawImage(video,-srcW*k/2,-srcH*k/2,srcW*k,srcH*k); }catch(_){}
+        cx2.restore();
+        let d; try{ d=cx2.getImageData(0,0,W,H).data; }catch(_){ break; }
+        const gray=new Float64Array(W*H);
+        for(let p=0,g=0;p<d.length;p+=4,g++) gray[g]=(d[p]*0.299+d[p+1]*0.587+d[p+2]*0.114);
+        for(let y=1;y<H-1;y++)for(let x=1;x<W-1;x++){
+          const g=y*W+x;
+          const gx=Math.abs(gray[g+1]-gray[g-1]), gy=Math.abs(gray[g+W]-gray[g-W]);
+          const detail=gx+gy;
+          const motion=prev?Math.abs(gray[g]-prev[g]):0;
+          const s=detail+motion*2.2;
+          colScore[x]+=s; rowScore[y]+=s;
+        }
+        prev=gray;
+      }
+      // choose crop window maximizing score
+      const target=fitRatioRect(ratio.w,ratio.h,effW,effH);
+      const cw=target.w, ch=target.h;
+      const winW=Math.max(1,Math.round(cw/effW*W)), winH=Math.max(1,Math.round(ch/effH*H));
+      const bestStart=(arr,len,total)=>{
+        if(len>=total)return 0;
+        let sum=0; for(let i=0;i<len;i++)sum+=arr[i];
+        let best=sum,bi=0,run=sum;
+        for(let i=len;i<total;i++){ run+=arr[i]-arr[i-len]; if(run>best){best=run;bi=i-len+1;} }
+        return bi;
+      };
+      const bx=bestStart(colScore,winW,W), by=bestStart(rowScore,winH,H);
+      let nx=(bx/W)*effW, ny=(by/H)*effH;
+      nx=clamp(nx,0,effW-cw); ny=clamp(ny,0,effH-ch);
+      crop={x:nx,y:ny,w:cw,h:ch}; updateOverlay();
+      autoNote.textContent="Framed on the busiest part of the shot. Drag the box if you want to nudge it.";
+    }catch(e){ autoNote.textContent="Couldn't analyse this clip — position the box manually."; }
+    finally{
+      video.currentTime=keep; if(!wasPaused)video.play();
+      autoFrameBtn.disabled=false; autoFrameBtn.textContent="✨ Auto reframe — find the subject";
+    }
+  });
+
   function outputDims(){
     let ow,oh;
     if(mode==="blur"){const ar=ratio.w===0?effW/effH:ratio.w/ratio.h;let h=effH,w=h*ar;ow=w;oh=h;}else{ow=crop.w;oh=crop.h;}
@@ -565,10 +635,10 @@
   function doUndo(){ if(!undoStack.length)return; redoStack.push(snap()); timeline=JSON.parse(undoStack.pop()); selSeg=null; renderTimeline(); updateUndoBtns(); }
   function doRedo(){ if(!redoStack.length)return; undoStack.push(snap()); timeline=JSON.parse(redoStack.pop()); selSeg=null; renderTimeline(); updateUndoBtns(); }
 
-  function initTimeline(){ const d=isFinite(video.duration)?video.duration:0; timeline=[{id:++segSeq,start:0,end:d}]; selSeg=null; undoStack=[]; redoStack=[]; updateUndoBtns(); renderTimeline(); }
+  function initTimeline(){ const d=isFinite(video.duration)?video.duration:0; timeline=[{id:++segSeq,start:0,end:d,speed:1}]; selSeg=null; undoStack=[]; redoStack=[]; updateUndoBtns(); renderTimeline(); }
   function sortTL(){ timeline.sort((a,b)=>a.start-b.start); }
-  function keptSegments(){ return timeline.slice().sort((a,b)=>a.start-b.start).map(s=>[s.start,s.end]); }
-  function keptDuration(){ return timeline.reduce((a,s)=>a+(s.end-s.start),0); }
+  function keptSegments(){ return timeline.slice().sort((a,b)=>a.start-b.start).map(s=>[s.start,s.end,s.speed||1]); }
+  function keptDuration(){ return timeline.reduce((a,s)=>a+((s.end-s.start)/(s.speed||1)),0); }
 
   function renderTimeline(){
     const d=video.duration||0;
@@ -578,6 +648,7 @@
       timeline.forEach(s=>{
         const el=document.createElement("div"); el.className="tl-seg"+(s.id===selSeg?" sel":""); s.el=el;
         el.title=`${fmt(s.start)}–${fmt(s.end)}`;
+        if((s.speed||1)!==1){const b=document.createElement("span");b.className="tl-badge";b.textContent=(s.speed)+"\u00D7";el.appendChild(b);}
         el.addEventListener("pointerdown",e=>{ if(e.target.classList.contains("tl-edge"))return; e.stopPropagation(); selSeg=s.id; const r=tlTrack.getBoundingClientRect(); video.currentTime=clamp((e.clientX-r.left)/r.width,0,1)*d; renderTimeline(); });
         const le=document.createElement("div"); le.className="tl-edge l"; el.appendChild(le);
         const re=document.createElement("div"); re.className="tl-edge r"; el.appendChild(re);
@@ -599,7 +670,23 @@
     tlDelete.disabled=!(selSeg&&timeline.length>1);
     const seg=timeline.find(s=>video.currentTime>s.start+0.05&&video.currentTime<s.end-0.05);
     tlSplit.disabled=!seg;
+    const sel=timeline.find(s=>s.id===selSeg);
+    tlSpeed.disabled=!sel;
+    if(sel)tlSpeed.value=String(sel.speed||1);
+    applyPreviewRate();
   }
+  // preview plays each part at its own speed
+  function applyPreviewRate(){
+    if(recording)return;
+    const t=video.currentTime;
+    const cur=timeline.find(s=>t>=s.start-0.02&&t<s.end);
+    const r=cur?(cur.speed||1):1;
+    if(Math.abs(video.playbackRate-r)>0.01){ try{ video.playbackRate=r; }catch(_){} }
+  }
+  tlSpeed.addEventListener("change",()=>{
+    const sel=timeline.find(s=>s.id===selSeg); if(!sel)return;
+    pushUndo(); sel.speed=+tlSpeed.value||1; renderTimeline();
+  });
   function beginEdge(s,side,ev){
     ev.stopPropagation(); selSeg=s.id; pushUndo();
     const d=video.duration||0, r=tlTrack.getBoundingClientRect();
@@ -618,7 +705,7 @@
   tlSplit.addEventListener("click",()=>{
     const t=video.currentTime; const seg=timeline.find(s=>t>s.start+0.05&&t<s.end-0.05);
     if(!seg)return; pushUndo();
-    const ns={id:++segSeq,start:t,end:seg.end}; seg.end=t;
+    const ns={id:++segSeq,start:t,end:seg.end,speed:seg.speed||1}; seg.end=t;
     const i=timeline.indexOf(seg); timeline.splice(i+1,0,ns); selSeg=ns.id; renderTimeline();
   });
   tlDelete.addEventListener("click",()=>{
@@ -626,7 +713,7 @@
     const i=timeline.findIndex(s=>s.id===selSeg); if(i<0)return;
     timeline.splice(i,1); selSeg=null; renderTimeline();
   });
-  tlReset.addEventListener("click",()=>{ pushUndo(); const d=isFinite(video.duration)?video.duration:0; timeline=[{id:++segSeq,start:0,end:d}]; selSeg=null; renderTimeline(); });
+  tlReset.addEventListener("click",()=>{ pushUndo(); const d=isFinite(video.duration)?video.duration:0; timeline=[{id:++segSeq,start:0,end:d,speed:1}]; selSeg=null; renderTimeline(); });
   tlUndo.addEventListener("click",doUndo);
   tlRedo.addEventListener("click",doRedo);
   document.addEventListener("keydown",e=>{
@@ -763,6 +850,37 @@
     return ffmpegLoading;
   }
 
+  // atempo only accepts 0.5–2.0, so chain it for larger factors
+  function atempoChain(spd){
+    let r=spd,parts=[];
+    while(r>2.0){parts.push("atempo=2.0");r/=2.0;}
+    while(r<0.5){parts.push("atempo=0.5");r/=0.5;}
+    if(Math.abs(r-1)>0.001)parts.push("atempo="+r.toFixed(4));
+    return parts.join(",");
+  }
+  // Apply per-segment speed to an existing filter arg set (handles -vf and -filter_complex)
+  function applySpeedToFilter(filterArgs,spd){
+    const pts=`setpts=${(1/spd).toFixed(5)}*PTS`;
+    const atc=atempoChain(spd);
+    const i=filterArgs.indexOf("-vf");
+    if(i>=0){
+      const chain=filterArgs[i+1]+","+pts;
+      const out=["-vf",chain];
+      if(atc)out.push("-af",atc); else out.push("-an");
+      return out;
+    }
+    const j=filterArgs.indexOf("-filter_complex");
+    if(j>=0){
+      // video graph ends with [v]; append setpts, and build audio graph if audio exists
+      let fc=filterArgs[j+1].replace(/\[v\]$/,`[vs];[vs]${pts}[v]`);
+      const out=["-filter_complex",fc,"-map","[v]"];
+      if(atc){ out[1]=fc+`;[0:a]${atc}[a]`; out.push("-map","[a]?"); }
+      else out.push("-an");
+      return out;
+    }
+    return filterArgs;
+  }
+
   function buildFilterArgs(out){
     const eq=enhanceEq(),r=rotTokens();
     if(mode==="blur"){
@@ -829,9 +947,18 @@
     result.classList.add("on");
   }
 
+  const isMobile=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)||window.innerWidth<820;
   async function exportWithFfmpeg(){
     if(!currentFile){showErr("Load a video first.");return;}
     hideErr(); result.classList.remove("on"); clearClips();
+    // Phone browsers cap how much memory one tab can use; big files kill the tab mid-encode.
+    if(isMobile){
+      const mb=currentFile.size/1048576, dur=video.duration||0;
+      if(mb>120||dur>240){
+        showErr(`This clip (${mb.toFixed(0)} MB, ${fmt(dur)}) is too large for a phone browser to encode — the tab will run out of memory and reload. Use a desktop for this one, or switch Engine to "Fast" and lower Resolution to 720p. Short clips (under ~2 min) work fine on mobile.`);
+        return;
+      }
+    }
     const out=outputDims(); const segs=buildSegments(); segTotal=segs.length; segIndex=0;
     encoding=true; exportBtn.disabled=true; exportBtn.textContent="Encoding…"; recBadge.classList.add("on");
     progress.classList.add("on"); setProg(1,"Loading encoder…");
@@ -858,8 +985,9 @@
       const clips=[]; const partNames=[];
       for(let i=0;i<segs.length;i++){
         segIndex=i;
-        const [s,e]=segs[i]; const dur=Math.max(0.05,e-s); const outName=`out_${i}.mp4`;
-        const args=["-ss",s.toFixed(3),"-i",inName,...stickerInputs,"-t",dur.toFixed(3),...filterArgs,...codec];
+        const [s,e,spd]=segs[i]; const dur=Math.max(0.05,e-s); const outName=`out_${i}.mp4`;
+        const fa=(spd&&spd!==1)?applySpeedToFilter(filterArgs,spd):filterArgs;
+        const args=["-ss",s.toFixed(3),"-i",inName,...stickerInputs,"-t",dur.toFixed(3),...fa,...codec];
         if(+fpsSel.value)args.push("-r",String(+fpsSel.value));
         args.push(outName);
         await f.exec(args);
@@ -941,7 +1069,7 @@
     clearClips();
     video.pause(); video.currentTime=tStartSec;
     await new Promise(r=>{const fn=()=>{video.removeEventListener("seeked",fn);r();};video.addEventListener("seeked",fn);});
-    rec.start(250); video.muted=true;
+    rec.start(250); video.muted=true; try{video.playbackRate=1;}catch(_){}
     try{await video.play();}catch(e){showErr("Couldn't start playback for encoding.");endRec();return;}
     const span=Math.max(0.05,tEndSec-tStartSec),minGap=fpsTarget?1000/fpsTarget:0; let lastTs=-1e9;
     function step(now){
