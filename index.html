@@ -467,6 +467,8 @@
           <input id="musicVol" type="range" min="0" max="100" value="70" style="width:100%;accent-color:var(--brand)"></div>
         <div class="field" style="margin-top:10px"><p class="label">Original audio <span id="ovLabel">100%</span></p>
           <input id="origVol" type="range" min="0" max="100" value="100" style="width:100%;accent-color:var(--brand)"></div>
+        <div class="field" style="margin-top:10px"><p class="label">Noise reduction</p>
+          <select id="nrSel"><option value="off" selected>Off</option><option value="light">Light · clean hiss</option><option value="strong">Strong · hiss + hum</option></select></div>
         <button class="btn-ghost" id="musicRemove" style="display:none">Remove music</button>
         <p class="note">Music loops to fit your edit and is mixed into the export. Need tracks? <a href="https://studio.youtube.com" target="_blank" rel="noopener" style="color:var(--brand)">YouTube Studio → Audio Library</a> has free-to-use music — download a track there, then add it here. (YouTube doesn't allow apps to pull its library directly, so it's a two-step.)</p>
       </div>
@@ -998,6 +1000,22 @@
     return filterArgs;
   }
 
+  // Original-audio processing for export: noise reduction + volume (volume here only when
+  // no music, because the music mix pass applies it there instead — avoids double-applying).
+  function audioChain(){
+    const parts=[];
+    if(nrSel.value==="light")parts.push("afftdn=nr=12:nf=-25");
+    else if(nrSel.value==="strong")parts.push("highpass=f=80","afftdn=nr=24:nf=-30");
+    if(!musicFile){ const ov=origGain(); if(Math.abs(ov-1)>0.005)parts.push("volume="+ov.toFixed(3)); }
+    return parts.join(",");
+  }
+  function applyAudioChain(args){
+    const ch=audioChain(); if(!ch)return args;
+    const a=args.slice(); const i=a.indexOf("-af");
+    if(i>=0){a[i+1]=a[i+1]+","+ch; return a;}
+    return [...a,"-af",ch];
+  }
+
   // atempo only accepts 0.5–2.0, so chain it for larger factors
   function atempoChain(spd){
     let r=spd,parts=[];
@@ -1006,27 +1024,32 @@
     if(Math.abs(r-1)>0.001)parts.push("atempo="+r.toFixed(4));
     return parts.join(",");
   }
-  // Apply per-segment speed to an existing filter arg set (handles -vf and -filter_complex)
+  // Apply per-segment speed to an existing filter arg set (handles -vf and -filter_complex,
+  // merging with any -af audio chain already present e.g. noise reduction / volume)
   function applySpeedToFilter(filterArgs,spd){
     const pts=`setpts=${(1/spd).toFixed(5)}*PTS`;
     const atc=atempoChain(spd);
-    const i=filterArgs.indexOf("-vf");
-    if(i>=0){
-      const chain=filterArgs[i+1]+","+pts;
-      const out=["-vf",chain];
-      if(atc)out.push("-af",atc); else out.push("-an");
-      return out;
+    let a=filterArgs.slice();
+    const vi=a.indexOf("-vf");
+    if(vi>=0){
+      a[vi+1]=a[vi+1]+","+pts;
+      const ai=a.indexOf("-af");
+      if(atc){ if(ai>=0)a[ai+1]=a[ai+1]+","+atc; else a.push("-af",atc); }
+      else { if(ai>=0)a.splice(ai,2); a.push("-an"); }
+      return a;
     }
-    const j=filterArgs.indexOf("-filter_complex");
+    const j=a.indexOf("-filter_complex");
     if(j>=0){
-      // video graph ends with [v]; append setpts, and build audio graph if audio exists
-      let fc=filterArgs[j+1].replace(/\[v\]$/,`[vs];[vs]${pts}[v]`);
-      const out=["-filter_complex",fc,"-map","[v]"];
-      if(atc){ out[1]=fc+`;[0:a]${atc}[a]`; out.push("-map","[a]?"); }
-      else out.push("-an");
-      return out;
+      let fc=a[j+1].replace(/\[v\]$/,`[vs];[vs]${pts}[v]`);
+      const ai=a.indexOf("-af"); let pre="";
+      if(ai>=0){ pre=a[ai+1]; a.splice(ai,2); }
+      for(let k=0;k<a.length-1;k++){ if(a[k]==="-map"&&a[k+1]==="0:a?"){a.splice(k,2);break;} }
+      const chain=[pre,atc].filter(Boolean).join(",");
+      if(chain){ fc+=`;[0:a]${chain}[a]`; a[j+1]=fc; a.push("-map","[a]?"); }
+      else { a[j+1]=fc; a.push("-an"); }
+      return a;
     }
-    return filterArgs;
+    return a;
   }
 
   function buildFilterArgs(out){
@@ -1151,7 +1174,7 @@
       for(let i=0;i<segs.length;i++){
         segIndex=i;
         const [s,e,spd,zm]=segs[i]; const dur=Math.max(0.05,e-s); const outName=`out_${i}.mp4`;
-        let fa=filterArgs;
+        let fa=applyAudioChain(filterArgs);
         if(zm&&zm!=="none")fa=applyZoomToFilter(fa,zm,dur/(spd||1),out);
         if(spd&&spd!==1)fa=applySpeedToFilter(fa,spd);
         const args=["-ss",s.toFixed(3),"-i",inName,...stickerInputs,"-t",dur.toFixed(3),...fa,...codec];
@@ -1234,7 +1257,13 @@
         const dest=actx.createMediaStreamDestination();
         if(srcTracks.length){
           const g=actx.createGain(); g.gain.value=origGain();
-          actx.createMediaStreamSource(new MediaStream(srcTracks)).connect(g); g.connect(dest);
+          let node=actx.createMediaStreamSource(new MediaStream(srcTracks));
+          if(nrSel.value!=="off"){
+            const hp=actx.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=nrSel.value==="strong"?120:80;
+            node.connect(hp); node=hp;
+            if(nrSel.value==="strong"){ const lp=actx.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=12000; node.connect(lp); node=lp; }
+          }
+          node.connect(g); g.connect(dest);
         }
         if(musicFile){
           const g2=actx.createGain(); g2.gain.value=musicGain();
@@ -1288,7 +1317,7 @@
 
   // ---- background music ----
   const musicInput=$("musicFile"),musicNameEl=$("musicName"),musicVol=$("musicVol"),origVol=$("origVol"),
-        mvLabel=$("mvLabel"),ovLabel=$("ovLabel"),musicRemoveBtn=$("musicRemove");
+        mvLabel=$("mvLabel"),ovLabel=$("ovLabel"),musicRemoveBtn=$("musicRemove"),nrSel=$("nrSel");
   let musicFile=null,musicURL=null;
   const musicEl=new Audio(); musicEl.loop=true;
   function musicGain(){return (+musicVol.value)/100;}
