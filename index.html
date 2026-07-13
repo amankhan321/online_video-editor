@@ -356,7 +356,7 @@
       <div class="stage" id="stage">
         <span class="bracket tl"></span><span class="bracket tr"></span><span class="bracket bl"></span><span class="bracket br"></span>
         <canvas id="preview"></canvas>
-        <video id="video" playsinline muted></video>
+        <video id="video" playsinline></video>
         <div class="ov" id="overlay">
           <div class="crop" id="crop">
             <div class="thirds"><span class="v1"></span><span class="v2"></span><span class="h1"></span><span class="h2"></span></div>
@@ -369,6 +369,7 @@
       </div>
       <div class="scrub">
         <button id="play" aria-label="Play / pause"><svg id="playIco" width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
+        <button id="muteBtn" aria-label="Mute / unmute"><svg id="volIco" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z" fill="currentColor" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg></button>
         <input id="seek" type="range" min="0" max="1000" value="0" aria-label="Seek" />
         <span class="t" id="time">0:00 / 0:00</span>
       </div>
@@ -727,6 +728,13 @@
   }
 
   // ---- playback ----
+  const muteBtn=$("muteBtn"),volIco=$("volIco");
+  const VOL_ON='<path d="M11 5L6 9H2v6h4l5 4V5z" fill="currentColor" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>';
+  const VOL_OFF='<path d="M11 5L6 9H2v6h4l5 4V5z" fill="currentColor" stroke="none"/><path d="M16 9l6 6M22 9l-6 6"/>';
+  function refreshVolIco(){ volIco.innerHTML=video.muted?VOL_OFF:VOL_ON; }
+  muteBtn.addEventListener("click",()=>{ video.muted=!video.muted; refreshVolIco(); });
+  video.addEventListener("volumechange",refreshVolIco);
+  refreshVolIco();
   playBtn.addEventListener("click",()=>{video.paused?video.play():video.pause();});
   const useRVFC="requestVideoFrameCallback" in HTMLVideoElement.prototype;
   function previewLoop(){if(!playing)return;drawPreview();if(useRVFC)video.requestVideoFrameCallback(previewLoop);else requestAnimationFrame(previewLoop);}
@@ -1256,7 +1264,7 @@
     clearClips();
     video.pause(); video.currentTime=tStartSec;
     await new Promise(r=>{const fn=()=>{video.removeEventListener("seeked",fn);r();};video.addEventListener("seeked",fn);});
-    rec.start(250); video.muted=true; try{video.playbackRate=1;}catch(_){}
+    rec.start(250); window.__preMute=video.muted; video.muted=true; try{video.playbackRate=1;}catch(_){}
     try{await video.play();}catch(e){showErr("Couldn't start playback for encoding.");endRec();return;}
     const span=Math.max(0.05,tEndSec-tStartSec),minGap=fpsTarget?1000/fpsTarget:0; let lastTs=-1e9;
     function step(now){
@@ -1270,7 +1278,7 @@
     video.onended=()=>stopRec();
     function stopRec(){if(rec&&rec.state!=="inactive"){try{rec.stop();}catch(_){}}}
   }
-  function endRec(){recording=false; try{musicEl.pause();}catch(_){} recBadge.classList.remove("on");exportBtn.disabled=false;exportBtn.textContent="Export portrait clip";setProg(100,"Done");setTimeout(()=>progress.classList.remove("on"),900);video.onended=null;video.muted=true;playIco.innerHTML='<path d="M8 5v14l11-7z"/>';}
+  function endRec(){recording=false; try{musicEl.pause();}catch(_){} recBadge.classList.remove("on");exportBtn.disabled=false;exportBtn.textContent="Export portrait clip";setProg(100,"Done");setTimeout(()=>progress.classList.remove("on"),900);video.onended=null;video.muted=(window.__preMute!==undefined?window.__preMute:false);window.__preMute=undefined;playIco.innerHTML='<path d="M8 5v14l11-7z"/>';}
 
   function setProg(p,label){barFill.style.width=p.toFixed(0)+"%";plPct.textContent=Math.round(p)+"%";if(label)plLabel.textContent=label;}
   function showErr(m){errBox.textContent=m;errBox.classList.add("on");}
