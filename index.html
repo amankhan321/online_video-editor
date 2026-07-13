@@ -236,6 +236,13 @@
   .sec-body{margin-top:12px}
   .panel.closed .sec-body{display:none}
   .panel.closed{padding-bottom:16px}
+  /* full-bleed app mode once a video is loaded */
+  body.app .wrap{max-width:none;padding:14px 20px 40px}
+  body.app header,body.app .below,body.app .footer{display:none}
+  body.app{background:#0d0f13}
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-thumb{background:#2a2f3a;border-radius:6px;border:2px solid #0d0f13}
+  ::-webkit-scrollbar-track{background:transparent}
   .hidden{display:none!important}
 </style>
 </head>
@@ -270,6 +277,7 @@
       <button class="railbtn" data-tool="rotate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v4h-4"/></svg><span>Rotate</span></button>
       <button class="railbtn" data-tool="effects"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 4.6L18.5 9l-4.6 1.9L12 15l-1.9-4.1L5.5 9l4.6-1.4z"/><path d="M18 15l.8 2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-1z"/></svg><span>Effects</span></button>
       <button class="railbtn" data-tool="stickers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M20 12a8 8 0 1 0-8 8c0-4 4-2 6-4s2-4 2-4z"/><circle cx="9.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><circle cx="14.5" cy="10" r="1.1" fill="currentColor" stroke="none"/></svg><span>Stickers</span></button>
+      <button class="railbtn" data-tool="audio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V6l11-3v12"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="15" r="3"/></svg><span>Audio</span></button>
       <button class="topexport" id="topExport"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12M12 16l-4-4M12 16l4-4"/><path d="M4 20h16"/></svg>Export</button>
     </div>
     <div class="props" id="props">
@@ -319,6 +327,23 @@
           <input id="stkUpload" type="file" accept="image/*" class="hidden">
         </label>
         <p class="note">Tap to add, drag to place, corner to resize, × to remove. Baked into the export.</p>
+      </div>
+      <div class="toolpane" data-pane="audio">
+<div class="panel">
+        <p class="label">Background music</p>
+        <label class="stkupload">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          Add music (MP3 / WAV / M4A)
+          <input id="musicFile" type="file" accept="audio/*" class="hidden">
+        </label>
+        <p class="note" id="musicName" style="display:none"></p>
+        <div class="field" style="margin-top:12px"><p class="label">Music volume <span id="mvLabel">70%</span></p>
+          <input id="musicVol" type="range" min="0" max="100" value="70" style="width:100%;accent-color:var(--brand)"></div>
+        <div class="field" style="margin-top:10px"><p class="label">Original audio <span id="ovLabel">100%</span></p>
+          <input id="origVol" type="range" min="0" max="100" value="100" style="width:100%;accent-color:var(--brand)"></div>
+        <button class="btn-ghost" id="musicRemove" style="display:none">Remove music</button>
+        <p class="note">Music loops to fit your edit and is mixed into the export. Need tracks? <a href="https://studio.youtube.com" target="_blank" rel="noopener" style="color:var(--brand)">YouTube Studio → Audio Library</a> has free-to-use music — download a track there, then add it here. (YouTube doesn't allow apps to pull its library directly, so it's a two-step.)</p>
+      </div>
       </div>
       </div>
     </div>
@@ -495,7 +520,7 @@
     lastUrl=URL.createObjectURL(f); video.src=lastUrl;
     video.onloadedmetadata=()=>{
       srcW=video.videoWidth; srcH=video.videoHeight; srcInfo.textContent=`${srcW}×${srcH}`;
-      dropzone.classList.add("hidden"); editor.classList.remove("hidden"); result.classList.remove("on");
+      dropzone.classList.add("hidden"); editor.classList.remove("hidden"); result.classList.remove("on"); document.body.classList.add("app");
       initTimeline();
       computeEff(); applyRatio(true); sizePreview(); drawPreview(); requestAnimationFrame(layout); renderTimeline();
     };
@@ -505,7 +530,7 @@
     video.pause(); video.removeAttribute("src"); video.load();
     if(lastUrl){URL.revokeObjectURL(lastUrl);lastUrl=null;}
     clearStickers();
-    editor.classList.add("hidden"); dropzone.classList.remove("hidden");
+    editor.classList.add("hidden"); dropzone.classList.remove("hidden"); document.body.classList.remove("app");
     fileInput.value=""; result.classList.remove("on"); progress.classList.remove("on");
   }
 
@@ -1044,6 +1069,23 @@
   }
 
   const isMobile=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)||window.innerWidth<820;
+  // Second pass: remux music over a finished clip (video stream copied, audio remixed once)
+  async function mixMusicInto(f, inFsName, outFsName){
+    const mExt=(musicFile.name.match(/\.([a-z0-9]+)$/i)?.[1]||"mp3").toLowerCase().replace(/[^a-z0-9]/g,"")||"mp3";
+    const mName="music."+mExt;
+    try{ await f.writeFile(mName, await window.FFmpegUtil.fetchFile(musicFile)); }catch(_){ return false; }
+    const mv=musicGain().toFixed(3), ov=origGain().toFixed(3);
+    const replaceArgs=["-i",inFsName,"-stream_loop","-1","-i",mName,"-map","0:v","-c:v","copy","-map","1:a","-af","volume="+mv,"-c:a","aac","-b:a","192k","-shortest",outFsName];
+    if(origGain()<=0.001){
+      try{ await f.exec(replaceArgs); return true; }catch(_){ return false; }
+    }
+    const amixArgs=["-i",inFsName,"-stream_loop","-1","-i",mName,"-filter_complex",
+      `[0:a]volume=${ov}[a0];[1:a]volume=${mv}[a1];[a0][a1]amix=inputs=2:duration=first:dropout_transition=0[a]`,
+      "-map","0:v","-c:v","copy","-map","[a]","-c:a","aac","-b:a","192k","-shortest",outFsName];
+    try{ await f.exec(amixArgs); return true; }
+    catch(_){ try{ await f.exec(replaceArgs); return true; }catch(_){ return false; } }
+  }
+
   async function exportWithFfmpeg(){
     if(!currentFile){showErr("Load a video first.");return;}
     hideErr(); result.classList.remove("on"); clearClips();
@@ -1091,8 +1133,11 @@
         await f.exec(args);
         partNames.push(outName);
         if(!join){
-          const data=await f.readFile(outName);
+          let readName=outName;
+          if(musicFile){ setProg(98,"Adding music…"); const mo=`m_${i}.mp4`; if(await mixMusicInto(f,outName,mo)){readName=mo;} }
+          const data=await f.readFile(readName);
           try{await f.deleteFile(outName);}catch(_){}
+          if(readName!==outName){try{await f.deleteFile(readName);}catch(_){}}
           clips.push({blob:new Blob([data.buffer],{type:"video/mp4"}),start:s,end:e});
         }
       }
@@ -1101,9 +1146,11 @@
         const list=partNames.map(n=>`file '${n}'`).join("\n")+"\n";
         await f.writeFile("concat.txt",new TextEncoder().encode(list));
         await f.exec(["-f","concat","-safe","0","-i","concat.txt","-c","copy","joined.mp4"]);
-        const data=await f.readFile("joined.mp4");
+        let joinedName="joined.mp4";
+        if(musicFile){ setProg(99,"Adding music…"); if(await mixMusicInto(f,"joined.mp4","joined_m.mp4")){joinedName="joined_m.mp4";} }
+        const data=await f.readFile(joinedName);
         clips.push({blob:new Blob([data.buffer],{type:"video/mp4"}),start:segs[0][0],end:segs[segs.length-1][1]});
-        try{await f.deleteFile("concat.txt");await f.deleteFile("joined.mp4");}catch(_){}
+        try{await f.deleteFile("concat.txt");await f.deleteFile("joined.mp4");if(joinedName!=="joined.mp4")await f.deleteFile(joinedName);}catch(_){}
         for(const n of partNames){try{await f.deleteFile(n);}catch(_){}}
       }
       try{await f.deleteFile(inName);}catch(_){}
@@ -1151,7 +1198,26 @@
     const fpsTarget=+fpsSel.value,assumedFps=fpsTarget||30,bpp=+qualitySel.value;
     const bitrate=Math.round(clamp(out.w*out.h*assumedFps*bpp,3_000_000,80_000_000));
     const canvasStream=exp.captureStream(0); const vTrack=canvasStream.getVideoTracks()[0];
-    let audioTracks=[]; try{const vs=video.captureStream?video.captureStream():(video.mozCaptureStream&&video.mozCaptureStream());if(vs)audioTracks=vs.getAudioTracks();}catch(_){}
+    let audioTracks=[]; let actx=null;
+    try{
+      const vs=video.captureStream?video.captureStream():(video.mozCaptureStream&&video.mozCaptureStream());
+      const srcTracks=vs?vs.getAudioTracks():[];
+      if(musicFile||srcTracks.length){
+        actx=new (window.AudioContext||window.webkitAudioContext)();
+        const dest=actx.createMediaStreamDestination();
+        if(srcTracks.length){
+          const g=actx.createGain(); g.gain.value=origGain();
+          actx.createMediaStreamSource(new MediaStream(srcTracks)).connect(g); g.connect(dest);
+        }
+        if(musicFile){
+          const g2=actx.createGain(); g2.gain.value=musicGain();
+          const msrc=actx.createMediaElementSource(musicEl);
+          msrc.connect(g2); g2.connect(dest);
+          musicEl.currentTime=0; musicEl.loop=true; try{musicEl.play();}catch(_){}
+        }
+        audioTracks=dest.stream.getAudioTracks();
+      }
+    }catch(_){}
     const mixed=new MediaStream([vTrack,...audioTracks]);
     let rec; try{rec=new MediaRecorder(mixed,{mimeType:mime,videoBitsPerSecond:bitrate});}catch(e){try{rec=new MediaRecorder(mixed,{mimeType:mime});}catch(e2){showErr("Couldn't start the encoder: "+e2.message);return;}}
     const chunks=[]; rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};
@@ -1185,7 +1251,7 @@
     video.onended=()=>stopRec();
     function stopRec(){if(rec&&rec.state!=="inactive"){try{rec.stop();}catch(_){}}}
   }
-  function endRec(){recording=false;recBadge.classList.remove("on");exportBtn.disabled=false;exportBtn.textContent="Export portrait clip";setProg(100,"Done");setTimeout(()=>progress.classList.remove("on"),900);video.onended=null;video.muted=true;playIco.innerHTML='<path d="M8 5v14l11-7z"/>';}
+  function endRec(){recording=false; try{musicEl.pause();}catch(_){} recBadge.classList.remove("on");exportBtn.disabled=false;exportBtn.textContent="Export portrait clip";setProg(100,"Done");setTimeout(()=>progress.classList.remove("on"),900);video.onended=null;video.muted=true;playIco.innerHTML='<path d="M8 5v14l11-7z"/>';}
 
   function setProg(p,label){barFill.style.width=p.toFixed(0)+"%";plPct.textContent=Math.round(p)+"%";if(label)plLabel.textContent=label;}
   function showErr(m){errBox.textContent=m;errBox.classList.add("on");}
@@ -1193,10 +1259,36 @@
 
   ["dragover","drop"].forEach(ev=>window.addEventListener(ev,e=>{ if(!e.target.closest("#dropzone")) e.preventDefault(); },false));
 
+  // ---- background music ----
+  const musicInput=$("musicFile"),musicNameEl=$("musicName"),musicVol=$("musicVol"),origVol=$("origVol"),
+        mvLabel=$("mvLabel"),ovLabel=$("ovLabel"),musicRemoveBtn=$("musicRemove");
+  let musicFile=null,musicURL=null;
+  const musicEl=new Audio(); musicEl.loop=true;
+  function musicGain(){return (+musicVol.value)/100;}
+  function origGain(){return (+origVol.value)/100;}
+  musicVol.addEventListener("input",()=>{mvLabel.textContent=musicVol.value+"%";musicEl.volume=musicGain();});
+  origVol.addEventListener("input",()=>{ovLabel.textContent=origVol.value+"%";});
+  musicInput.addEventListener("change",e=>{
+    const f=e.target.files[0]; if(!f)return;
+    if(musicURL)URL.revokeObjectURL(musicURL);
+    musicFile=f; musicURL=URL.createObjectURL(f); musicEl.src=musicURL; musicEl.volume=musicGain();
+    musicNameEl.style.display="block"; musicNameEl.innerHTML="<b>"+f.name.replace(/</g,"&lt;")+"</b> \u00B7 loops to fit";
+    musicRemoveBtn.style.display="block"; musicInput.value="";
+  });
+  musicRemoveBtn.addEventListener("click",()=>{
+    musicEl.pause(); if(musicURL)URL.revokeObjectURL(musicURL);
+    musicFile=null; musicURL=null; musicEl.removeAttribute("src");
+    musicNameEl.style.display="none"; musicRemoveBtn.style.display="none";
+  });
+  // preview: music follows video play/pause
+  video.addEventListener("play",()=>{ if(musicFile&&!recording){ try{ musicEl.currentTime=(video.currentTime%(musicEl.duration||1e9))||0; musicEl.volume=musicGain(); musicEl.play(); }catch(_){}} });
+  video.addEventListener("pause",()=>{ try{musicEl.pause();}catch(_){}});
+  video.addEventListener("seeked",()=>{ if(musicFile&&!video.paused){ try{ musicEl.currentTime=(video.currentTime%(musicEl.duration||1e9))||0; }catch(_){}} });
+
   // ---- details panel, timeline ruler, filmstrip thumbnails ----
   const dName=$("dName"),dRes=$("dRes"),dDur=$("dDur"),dOut=$("dOut"),tlRuler=$("tlRuler"),detailsCol=$("details");
   video.addEventListener("loadedmetadata",()=>{
-    dName.textContent=fileName; dRes.textContent=srcW+"\u00D7"+srcH; dDur.textContent=fmt(video.duration||0);
+    dName.textContent=fileName; dRes.textContent=(video.videoWidth||srcW)+"\u00D7"+(video.videoHeight||srcH); dDur.textContent=fmt(video.duration||0);
     renderRuler(); genFilmstrip();
   });
   function refreshDetailsOut(){ if(!effW)return; const o=outputDims(); dOut.textContent=o.w+"\u00D7"+o.h; }
