@@ -439,6 +439,13 @@
             <option value="out">Zoom out (pull back)</option>
             <option value="punch">Punch in (quick)</option>
           </select>
+          <select id="tlVol" class="tlspeed" title="Volume of the selected part" disabled>
+            <option value="1">Vol 100%</option>
+            <option value="0.75">75%</option>
+            <option value="0.5">50%</option>
+            <option value="0.25">25%</option>
+            <option value="0">Mute part</option>
+          </select>
           <select id="tlSpeed" class="tlspeed" title="Speed of the selected part" disabled>
             <option value="1">Speed 1×</option>
             <option value="0.5">0.5× slow-mo</option>
@@ -504,7 +511,7 @@
   const progress=$("progress"),barFill=$("barFill"),plLabel=$("plLabel"),plPct=$("plPct");
   const result=$("result"),outVideo=$("outVideo"),dl=$("dl"),outMeta=$("outMeta"),errBox=$("err"),clipList=$("clipList");
   const tlTrack=$("tlTrack"),tlPlay=$("tlPlay"),tlCur=$("tlCur"),tlKept=$("tlKept"),tlTotal=$("tlTotal");
-  const tlSplit=$("tlSplit"),tlDelete=$("tlDelete"),tlReset=$("tlReset"),tlUndo=$("tlUndo"),tlRedo=$("tlRedo"),tlSpeed=$("tlSpeed"),tlZoom=$("tlZoom"),joinSeg=$("joinSeg"),tlHint=$("tlHint");
+  const tlSplit=$("tlSplit"),tlDelete=$("tlDelete"),tlReset=$("tlReset"),tlUndo=$("tlUndo"),tlRedo=$("tlRedo"),tlSpeed=$("tlSpeed"),tlZoom=$("tlZoom"),tlVol=$("tlVol"),joinSeg=$("joinSeg"),tlHint=$("tlHint");
   const stkLayer=$("stkLayer"),stkGrid=$("stkGrid"),stkUpload=$("stkUpload");
   const fnameEl=$("fname"),srcInfo=$("srcinfo");
 
@@ -756,9 +763,9 @@
   function doUndo(){ if(!undoStack.length)return; redoStack.push(snap()); timeline=JSON.parse(undoStack.pop()); selSeg=null; renderTimeline(); updateUndoBtns(); }
   function doRedo(){ if(!redoStack.length)return; undoStack.push(snap()); timeline=JSON.parse(redoStack.pop()); selSeg=null; renderTimeline(); updateUndoBtns(); }
 
-  function initTimeline(){ const d=isFinite(video.duration)?video.duration:0; timeline=[{id:++segSeq,start:0,end:d,speed:1,zoom:"none"}]; selSeg=null; undoStack=[]; redoStack=[]; updateUndoBtns(); renderTimeline(); }
+  function initTimeline(){ const d=isFinite(video.duration)?video.duration:0; timeline=[{id:++segSeq,start:0,end:d,speed:1,zoom:"none",vol:1}]; selSeg=null; undoStack=[]; redoStack=[]; updateUndoBtns(); renderTimeline(); }
   function sortTL(){ timeline.sort((a,b)=>a.start-b.start); }
-  function keptSegments(){ return timeline.slice().sort((a,b)=>a.start-b.start).map(s=>[s.start,s.end,s.speed||1,s.zoom||"none"]); }
+  function keptSegments(){ return timeline.slice().sort((a,b)=>a.start-b.start).map(s=>[s.start,s.end,s.speed||1,s.zoom||"none",(s.vol===undefined?1:s.vol)]); }
   function keptDuration(){ return timeline.reduce((a,s)=>a+((s.end-s.start)/(s.speed||1)),0); }
 
   function renderTimeline(){
@@ -769,7 +776,7 @@
       timeline.forEach(s=>{
         const el=document.createElement("div"); el.className="tl-seg"+(s.id===selSeg?" sel":""); s.el=el;
         el.title=`${fmt(s.start)}–${fmt(s.end)}`;
-        const tags=[];if((s.speed||1)!==1)tags.push(s.speed+"\u00D7");if(s.zoom&&s.zoom!=="none")tags.push({in:"\u2197 in",out:"\u2199 out",punch:"\u26A1 punch"}[s.zoom]||"");if(tags.length){const b=document.createElement("span");b.className="tl-badge";b.textContent=tags.join(" \u00B7 ");el.appendChild(b);}
+        const tags=[];if((s.speed||1)!==1)tags.push(s.speed+"\u00D7");if(s.vol!==undefined&&s.vol!==1)tags.push(s.vol===0?"muted":Math.round(s.vol*100)+"%");if(s.zoom&&s.zoom!=="none")tags.push({in:"\u2197 in",out:"\u2199 out",punch:"\u26A1 punch"}[s.zoom]||"");if(tags.length){const b=document.createElement("span");b.className="tl-badge";b.textContent=tags.join(" \u00B7 ");el.appendChild(b);}
         el.addEventListener("pointerdown",e=>{ if(e.target.classList.contains("tl-edge"))return; e.stopPropagation(); selSeg=s.id; const r=tlTrack.getBoundingClientRect(); video.currentTime=clamp((e.clientX-r.left)/r.width,0,1)*d; renderTimeline(); });
         const le=document.createElement("div"); le.className="tl-edge l"; el.appendChild(le);
         const re=document.createElement("div"); re.className="tl-edge r"; el.appendChild(re);
@@ -795,8 +802,8 @@
     const seg=timeline.find(s=>video.currentTime>s.start+0.05&&video.currentTime<s.end-0.05);
     tlSplit.disabled=!seg;
     const sel=timeline.find(s=>s.id===selSeg);
-    tlSpeed.disabled=!sel; tlZoom.disabled=!sel;
-    if(sel){tlSpeed.value=String(sel.speed||1);tlZoom.value=sel.zoom||"none";}
+    tlSpeed.disabled=!sel; tlZoom.disabled=!sel; tlVol.disabled=!sel;
+    if(sel){tlSpeed.value=String(sel.speed||1);tlZoom.value=sel.zoom||"none";tlVol.value=String(sel.vol===undefined?1:sel.vol);}
     applyPreviewRate();
   }
   // preview plays each part at its own speed
@@ -806,6 +813,8 @@
     const cur=timeline.find(s=>t>=s.start-0.02&&t<s.end);
     const r=cur?(cur.speed||1):1;
     if(Math.abs(video.playbackRate-r)>0.01){ try{ video.playbackRate=r; }catch(_){} }
+    const pv=(cur&&cur.vol!==undefined?cur.vol:1)*origGain();
+    try{ video.volume=clamp(pv,0,1); }catch(_){}
   }
   tlSpeed.addEventListener("change",()=>{
     const sel=timeline.find(s=>s.id===selSeg); if(!sel)return;
@@ -814,6 +823,10 @@
   tlZoom.addEventListener("change",()=>{
     const sel=timeline.find(s=>s.id===selSeg); if(!sel)return;
     pushUndo(); sel.zoom=tlZoom.value; renderTimeline();
+  });
+  tlVol.addEventListener("change",()=>{
+    const sel=timeline.find(s=>s.id===selSeg); if(!sel)return;
+    pushUndo(); sel.vol=+tlVol.value; renderTimeline(); applyPreviewRate();
   });
   function beginEdge(s,side,ev){
     ev.stopPropagation(); selSeg=s.id; pushUndo();
@@ -833,7 +846,7 @@
   tlSplit.addEventListener("click",()=>{
     const t=video.currentTime; const seg=timeline.find(s=>t>s.start+0.05&&t<s.end-0.05);
     if(!seg)return; pushUndo();
-    const ns={id:++segSeq,start:t,end:seg.end,speed:seg.speed||1,zoom:seg.zoom||"none"}; seg.end=t;
+    const ns={id:++segSeq,start:t,end:seg.end,speed:seg.speed||1,zoom:seg.zoom||"none",vol:(seg.vol===undefined?1:seg.vol)}; seg.end=t;
     const i=timeline.indexOf(seg); timeline.splice(i+1,0,ns); selSeg=ns.id; renderTimeline();
   });
   tlDelete.addEventListener("click",()=>{
@@ -841,7 +854,7 @@
     const i=timeline.findIndex(s=>s.id===selSeg); if(i<0)return;
     timeline.splice(i,1); selSeg=null; renderTimeline();
   });
-  tlReset.addEventListener("click",()=>{ pushUndo(); const d=isFinite(video.duration)?video.duration:0; timeline=[{id:++segSeq,start:0,end:d,speed:1,zoom:"none"}]; selSeg=null; renderTimeline(); });
+  tlReset.addEventListener("click",()=>{ pushUndo(); const d=isFinite(video.duration)?video.duration:0; timeline=[{id:++segSeq,start:0,end:d,speed:1,zoom:"none",vol:1}]; selSeg=null; renderTimeline(); });
   tlUndo.addEventListener("click",doUndo);
   tlRedo.addEventListener("click",doRedo);
   document.addEventListener("keydown",e=>{
@@ -1173,8 +1186,17 @@
       const clips=[]; const partNames=[];
       for(let i=0;i<segs.length;i++){
         segIndex=i;
-        const [s,e,spd,zm]=segs[i]; const dur=Math.max(0.05,e-s); const outName=`out_${i}.mp4`;
+        const [s,e,spd,zm,pvol]=segs[i]; const dur=Math.max(0.05,e-s); const outName=`out_${i}.mp4`;
         let fa=applyAudioChain(filterArgs);
+        if(pvol!==undefined&&pvol!==1){
+          if(pvol<=0.001){ // mute: cheaper + more reliable than volume=0
+            const ai=fa.indexOf("-af"); const b=fa.slice(); if(ai>=0)b.splice(ai,2); b.push("-an"); fa=b;
+          } else {
+            const b=fa.slice(); const ai=b.indexOf("-af");
+            if(ai>=0)b[ai+1]=b[ai+1]+",volume="+pvol.toFixed(3); else b.push("-af","volume="+pvol.toFixed(3));
+            fa=b;
+          }
+        }
         if(zm&&zm!=="none")fa=applyZoomToFilter(fa,zm,dur/(spd||1),out);
         if(spd&&spd!==1)fa=applySpeedToFilter(fa,spd);
         const args=["-ss",s.toFixed(3),"-i",inName,...stickerInputs,"-t",dur.toFixed(3),...fa,...codec];
@@ -1256,7 +1278,7 @@
         actx=new (window.AudioContext||window.webkitAudioContext)();
         const dest=actx.createMediaStreamDestination();
         if(srcTracks.length){
-          const g=actx.createGain(); g.gain.value=origGain();
+          const g=actx.createGain(); g.gain.value=origGain(); window.__origGainNode=g;
           let node=actx.createMediaStreamSource(new MediaStream(srcTracks));
           if(nrSel.value!=="off"){
             const hp=actx.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=nrSel.value==="strong"?120:80;
@@ -1299,6 +1321,7 @@
     function step(now){
       if(!recording)return; const t=now||performance.now();
       if(!minGap||t-lastTs>=minGap){drawFrame(out,ectx);drawPreview();try{vTrack.requestFrame();}catch(_){}lastTs=t;}
+      if(window.__origGainNode){const cur=timeline.find(x=>video.currentTime>=x.start-0.02&&video.currentTime<x.end);window.__origGainNode.gain.value=origGain()*((cur&&cur.vol!==undefined)?cur.vol:1);}
       setProg(clamp((video.currentTime-tStartSec)/span,0,1)*100,"Encoding…");
       if(video.ended||video.currentTime>=tEndSec-0.02){stopRec();return;}
       if(useRVFC)video.requestVideoFrameCallback(step);else requestAnimationFrame(step);
@@ -1307,7 +1330,7 @@
     video.onended=()=>stopRec();
     function stopRec(){if(rec&&rec.state!=="inactive"){try{rec.stop();}catch(_){}}}
   }
-  function endRec(){recording=false; try{musicEl.pause();}catch(_){} recBadge.classList.remove("on");exportBtn.disabled=false;exportBtn.textContent="Export portrait clip";setProg(100,"Done");setTimeout(()=>progress.classList.remove("on"),900);video.onended=null;video.muted=(window.__preMute!==undefined?window.__preMute:false);window.__preMute=undefined;playIco.innerHTML='<path d="M8 5v14l11-7z"/>';}
+  function endRec(){recording=false; try{musicEl.pause();}catch(_){} window.__origGainNode=null; recBadge.classList.remove("on");exportBtn.disabled=false;exportBtn.textContent="Export portrait clip";setProg(100,"Done");setTimeout(()=>progress.classList.remove("on"),900);video.onended=null;video.muted=(window.__preMute!==undefined?window.__preMute:false);window.__preMute=undefined;playIco.innerHTML='<path d="M8 5v14l11-7z"/>';}
 
   function setProg(p,label){barFill.style.width=p.toFixed(0)+"%";plPct.textContent=Math.round(p)+"%";if(label)plLabel.textContent=label;}
   function showErr(m){errBox.textContent=m;errBox.classList.add("on");}
@@ -1323,7 +1346,7 @@
   function musicGain(){return (+musicVol.value)/100;}
   function origGain(){return (+origVol.value)/100;}
   musicVol.addEventListener("input",()=>{mvLabel.textContent=musicVol.value+"%";musicEl.volume=musicGain();});
-  origVol.addEventListener("input",()=>{ovLabel.textContent=origVol.value+"%";});
+  origVol.addEventListener("input",()=>{ovLabel.textContent=origVol.value+"%"; applyPreviewRate();});
   musicInput.addEventListener("change",e=>{
     const f=e.target.files[0]; if(!f)return;
     if(musicURL)URL.revokeObjectURL(musicURL);
