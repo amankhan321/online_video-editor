@@ -65,9 +65,29 @@
   .tl-ruler span{position:absolute;top:2px;transform:translateX(-50%)}
   .tl-ruler span::after{content:"";position:absolute;left:50%;top:13px;width:1px;height:5px;background:var(--line-2)}
   @media (max-width:1000px){
-    .editor{grid-template-columns:1fr;grid-template-areas:"rail" "stage" "props" "details" "tl"}
-    .rail{overflow-x:auto}
+    /* mobile: keep preview + timeline together so cutting never needs scroll ping-pong */
+    .editor{grid-template-columns:1fr;grid-template-areas:"rail" "stage" "tl" "props" "details";gap:10px}
+    .rail{overflow-x:auto;position:sticky;top:6px;z-index:40;-webkit-overflow-scrolling:touch}
+    .railbrand{display:none}
+    .railbtn{padding:6px 10px}
+    .topexport{padding:8px 13px;font-size:12.5px}
     .props,.details{max-height:none}
+    /* compact preview so stage + timeline fit one screen */
+    .stagewrap{position:sticky;top:60px;z-index:30}
+    .stage{min-height:180px}
+    #preview{max-height:34vh}
+    .stage video{max-height:34vh}
+    .scrub{padding:8px 10px}
+    /* compact timeline */
+    .timeline-card{padding:12px}
+    .tl-hint{display:none}
+    .tl-track{height:52px}
+    .tl-controls{gap:6px;margin-top:10px}
+    .tlbtn{padding:8px 10px;font-size:12px}
+    .tlspeed{padding:8px 26px 8px 9px;font-size:12px}
+    #joinSeg{width:100%;margin-top:2px}
+    .tl-ruler{height:16px}
+    .tl-ruler span:nth-child(odd){display:none}
   }
 
   .stage-card{background:var(--bg);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 18px 50px -30px rgba(0,0,0,.8)}
