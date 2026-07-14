@@ -6,7 +6,7 @@
 <title>Reframe — landscape to portrait</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&family=Anton&family=Bangers&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="./vendor/ffmpeg.js"></script>
 <script src="./vendor/ffmpeg-util.js"></script>
 <style>
@@ -264,16 +264,12 @@
   ::-webkit-scrollbar-thumb{background:#2a2f3a;border-radius:6px;border:2px solid #0d0f13}
   ::-webkit-scrollbar-track{background:transparent}
   .txtl{position:absolute;inset:0;z-index:6;pointer-events:none}
-  .txtitem{position:absolute;pointer-events:auto;cursor:move;white-space:pre-wrap;text-align:center;touch-action:none;line-height:1.25;border:1.5px dashed transparent;padding:2px 4px}
+  .txtitem{position:absolute;pointer-events:auto;cursor:move;white-space:pre-wrap;text-align:center;touch-action:none;line-height:1.25;border:1.5px dashed transparent}
   .txtitem.sel{border-color:var(--brand)}
   .pip{position:absolute;pointer-events:auto;cursor:move;border:1.5px solid var(--brand);touch-action:none;overflow:hidden;border-radius:4px}
-  .pip canvas,.pip video,.pip img{width:100%;height:100%;display:block;object-fit:fill}
+  .pip canvas{width:100%;height:100%;display:block}
   .pip .rz{position:absolute;right:-8px;bottom:-8px;width:16px;height:16px;border-radius:3px;background:var(--brand);border:2px solid #fff;cursor:nwse-resize;z-index:2}
   .pip.picking{cursor:crosshair}
-  .txtel{position:absolute;pointer-events:auto;cursor:move;touch-action:none;white-space:pre-wrap;user-select:none;line-height:1.15;border:1.5px dashed transparent;padding:2px 4px}
-  .txtel.sel{border-color:var(--brand)}
-  .txtchip{font-family:var(--mono);font-size:10.5px;padding:5px 10px;border-radius:999px;border:1px solid var(--line-2);color:var(--ink-soft);cursor:pointer;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .txtchip.sel{border-color:var(--brand);color:var(--brand);background:rgba(23,212,198,.12)}
   .hidden{display:none!important}
 </style>
 </head>
@@ -308,11 +304,9 @@
       <button class="railbtn" data-tool="rotate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v4h-4"/></svg><span>Rotate</span></button>
       <button class="railbtn" data-tool="effects"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 4.6L18.5 9l-4.6 1.9L12 15l-1.9-4.1L5.5 9l4.6-1.4z"/><path d="M18 15l.8 2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-1z"/></svg><span>Effects</span></button>
       <button class="railbtn" data-tool="stickers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M20 12a8 8 0 1 0-8 8c0-4 4-2 6-4s2-4 2-4z"/><circle cx="9.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><circle cx="14.5" cy="10" r="1.1" fill="currentColor" stroke="none"/></svg><span>Stickers</span></button>
-      <button class="railbtn" data-tool="text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6V4h16v2M12 4v16M9 20h6"/></svg><span>Text</span></button>
       <button class="railbtn" data-tool="text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 6V4h14v2M12 4v16M9 20h6"/></svg><span>Text</span></button>
       <button class="railbtn" data-tool="overlay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="4" width="14" height="11" rx="2"/><rect x="10" y="10" width="11" height="10" rx="2" fill="var(--paper)"/></svg><span>Overlay</span></button>
       <button class="railbtn" data-tool="audio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V6l11-3v12"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="15" r="3"/></svg><span>Audio</span></button>
-      <button class="railbtn" data-tool="overlay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="4" width="13" height="10" rx="1.5"/><rect x="10" y="10" width="11" height="10" rx="1.5" fill="currentColor" fill-opacity=".18"/></svg><span>Overlay</span></button>
       <button class="topexport" id="topExport"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12M12 16l-4-4M12 16l4-4"/><path d="M4 20h16"/></svg>Export</button>
     </div>
     <div class="props" id="props">
@@ -369,56 +363,6 @@
           <p class="label">Text &amp; titles</p>
           <div class="seg">
             <button id="txtAdd">+ Add text</button>
-            <button id="txtCaption">+ Caption</button>
-          </div>
-          <div id="txtChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px"></div>
-          <div id="txtEditor" class="hidden" style="margin-top:12px">
-            <textarea id="txtContent" rows="2" style="width:100%;background:var(--paper);border:1px solid var(--line-2);border-radius:10px;color:var(--ink);font-family:var(--sans);font-size:13px;padding:10px;resize:vertical"></textarea>
-            <div class="row2" style="margin-top:10px">
-              <div class="field"><p class="label">Font</p>
-                <select id="txtFont">
-                  <option value="Inter" selected>Inter</option>
-                  <option value="Bricolage Grotesque">Bricolage</option>
-                  <option value="Anton">Anton · bold title</option>
-                  <option value="Bangers">Bangers · meme</option>
-                  <option value="Space Mono">Space Mono</option>
-                </select></div>
-              <div class="field"><p class="label">Size <span id="txtSizeLbl">6%</span></p>
-                <input id="txtSize" type="range" min="2" max="20" value="6" style="width:100%;accent-color:var(--brand);margin-top:12px"></div>
-            </div>
-            <label class="stkupload" style="margin-top:10px">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-              Custom font (TTF / OTF / WOFF)
-              <input id="txtFontUp" type="file" accept=".ttf,.otf,.woff,.woff2,font/*" class="hidden">
-            </label>
-            <div class="customrow" style="margin-top:10px">
-              <div class="field"><span class="cap">Colour</span><input id="txtColor" type="color" value="#ffffff" style="width:100%;height:38px;background:var(--paper);border:1px solid var(--line-2);border-radius:9px;cursor:pointer"></div>
-              <div class="field"><span class="cap">Outline</span><select id="txtStroke"><option value="on" selected>On</option><option value="off">Off</option></select></div>
-              <div class="field"><span class="cap">Backdrop</span><select id="txtBg"><option value="off" selected>Off</option><option value="on">Pill</option></select></div>
-            </div>
-            <p class="label" style="margin-top:14px">Timing</p>
-            <div class="seg">
-              <button class="tlbtn" id="txtStart" style="justify-content:center">Start = playhead</button>
-              <button class="tlbtn" id="txtEnd" style="justify-content:center">End = playhead</button>
-            </div>
-            <p class="note" id="txtTimeLbl">Shows for the whole clip.</p>
-            <p class="label" style="margin-top:14px">Animation</p>
-            <div class="customrow">
-              <div class="field"><span class="cap">In</span><select id="animIn"><option value="none">None</option><option value="fade" selected>Fade</option><option value="up">Slide up</option><option value="pop">Pop</option></select></div>
-              <div class="field"><span class="cap">Out</span><select id="animOut"><option value="none">None</option><option value="fade" selected>Fade</option><option value="down">Slide down</option></select></div>
-              <div class="field"><span class="cap">Loop</span><select id="animLoop"><option value="none" selected>None</option><option value="pulse">Pulse</option></select></div>
-            </div>
-            <p class="note">Fade in/out exports on both engines. Slide, pop and pulse export via the <b>Fast</b> engine (preview shows all).</p>
-            <button class="btn-ghost" id="txtDelete" style="margin-top:12px">Delete this text</button>
-          </div>
-          <p class="note" style="margin-top:12px"><b>Auto captions</b> and <b>AI voice (TTS)</b> need speech AI that can't run well in the browser — they're coming with the server upgrade. Manual subtitles: use <b>+ Caption</b> and set timing at the playhead.</p>
-        </div>
-      </div>
-      <div class="toolpane" data-pane="text">
-        <div class="panel">
-          <p class="label">Text &amp; titles</p>
-          <div class="seg">
-            <button id="txtAdd">+ Add text</button>
             <label class="stkupload" style="margin-top:0;padding:9px;border-style:solid;border-color:var(--line-2)">Import .srt<input id="srtFile" type="file" accept=".srt,text/plain" class="hidden"></label>
           </div>
           <div id="txtOpts" class="hidden">
@@ -458,17 +402,17 @@
             </div>
             <div class="field" style="margin-top:10px"><p class="label">Loop</p>
               <select id="animLoop"><option value="none" selected>None</option><option value="pulse">Pulse</option></select></div>
-            <p class="note">Fade in/out bakes into both engines. Slide, Pop and Pulse bake on the <b>Fast</b> engine and show in preview; on Compatible they fall back to fade.</p>
+            <p class="note">Fade in/out bakes into both engines. Slide, Pop and Pulse animate in preview and bake on the <b>Fast</b> engine; Compatible falls back to fade.</p>
             <button class="btn-ghost" id="txtDelete" style="margin-top:12px">Delete this text</button>
           </div>
-          <p class="note" style="margin-top:12px"><b>Auto captions &amp; AI voice:</b> real speech-to-text and TTS need a server — coming with the server engine. Meanwhile .srt import gives you timed subtitles (export an SRT free from CapCut or YouTube Studio).</p>
+          <p class="note" style="margin-top:12px"><b>Auto captions &amp; AI voice:</b> real speech-to-text and TTS need a server. Meanwhile, generate an SRT free in CapCut or YouTube Studio and import it above for timed subtitles.</p>
         </div>
       </div>
       <div class="toolpane" data-pane="overlay">
         <div class="panel">
           <p class="label">Overlay / PIP</p>
           <label class="stkupload">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
             Add overlay video or image
             <input id="ovFile" type="file" accept="video/*,image/*" class="hidden">
           </label>
@@ -478,8 +422,7 @@
               <input id="ovSize" type="range" min="10" max="100" value="35" style="width:100%;accent-color:var(--brand)"></div>
             <div class="field" style="margin-top:10px"><p class="label">Opacity <span id="ovOpacLbl">100%</span></p>
               <input id="ovOpac" type="range" min="10" max="100" value="100" style="width:100%;accent-color:var(--brand)"></div>
-            <p class="note">Drag the overlay on the video to position it. Corner handle resizes.</p>
-
+            <p class="note">Drag the overlay on the video to position it; corner handle resizes.</p>
             <p class="label" style="margin-top:16px">Chroma key</p>
             <div class="seg" id="ckSeg">
               <button data-ck="off" aria-pressed="true">Off</button>
@@ -488,17 +431,15 @@
             <div id="ckOpts" class="hidden">
               <div class="customrow" style="margin-top:10px">
                 <div class="field"><span class="cap">Key colour</span>
-                  <input id="ckColor" type="color" value="#00d000" style="width:100%;height:40px;background:var(--paper);border:1px solid var(--line-2);border-radius:9px;cursor:pointer">
-                </div>
+                  <input id="ckColor" type="color" value="#00d000" style="width:100%;height:38px;background:var(--paper);border:1px solid var(--line-2);border-radius:9px;cursor:pointer"></div>
                 <div class="field"><span class="cap">Pick from overlay</span>
-                  <button class="btn-ghost" id="ckPick" style="margin-top:0;padding:11px">Eyedropper</button>
-                </div>
+                  <button class="btn-ghost" id="ckPick" style="margin-top:0;padding:10px">Eyedropper</button></div>
               </div>
               <div class="field" style="margin-top:10px"><p class="label">Similarity <span id="ckSimLbl">0.30</span></p>
                 <input id="ckSim" type="range" min="1" max="80" value="30" style="width:100%;accent-color:var(--brand)"></div>
               <div class="field" style="margin-top:10px"><p class="label">Edge blend <span id="ckBlLbl">0.10</span></p>
                 <input id="ckBl" type="range" min="0" max="50" value="10" style="width:100%;accent-color:var(--brand)"></div>
-              <p class="note">Green screen: keep the default green, then raise Similarity until the background disappears. Blend softens the edges.</p>
+              <p class="note">Green screen: keep green, raise Similarity until the background disappears. Blend softens edges.</p>
             </div>
             <button class="btn-ghost" id="ovRemove" style="margin-top:12px">Remove overlay</button>
           </div>
@@ -523,53 +464,6 @@
         <p class="note">Music loops to fit your edit and is mixed into the export. Need tracks? <a href="https://studio.youtube.com" target="_blank" rel="noopener" style="color:var(--brand)">YouTube Studio → Audio Library</a> has free-to-use music — download a track there, then add it here. (YouTube doesn't allow apps to pull its library directly, so it's a two-step.)</p>
       </div>
       </div>
-      <div class="toolpane" data-pane="overlay">
-        <div class="panel">
-          <p class="label">Overlay / PIP</p>
-          <label class="stkupload">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-            Add overlay video or image
-            <input id="ovFile" type="file" accept="video/*,image/*" class="hidden">
-          </label>
-          <p class="note" id="ovName" style="display:none"></p>
-
-          <div id="ovOpts" style="display:none">
-            <div class="field" style="margin-top:12px"><p class="label">Position</p>
-              <div class="ratios" id="ovPos">
-                <button data-pos="tl">Top L</button><button data-pos="tr" aria-pressed="true">Top R</button><button data-pos="ctr">Center</button>
-                <button data-pos="bl">Bottom L</button><button data-pos="br">Bottom R</button><button data-pos="full">Full</button>
-              </div>
-            </div>
-            <div class="field" style="margin-top:10px"><p class="label">Size <span id="ovSizeLabel">35%</span></p>
-              <input id="ovSize" type="range" min="10" max="100" value="35" style="width:100%;accent-color:var(--brand)"></div>
-            <div class="field" style="margin-top:10px"><p class="label">Opacity <span id="ovOpacLabel">100%</span></p>
-              <input id="ovOpac" type="range" min="10" max="100" value="100" style="width:100%;accent-color:var(--brand)"></div>
-
-            <div class="field" style="margin-top:14px"><p class="label">Chroma key</p>
-              <div class="seg" id="ovKeySeg">
-                <button data-key="off" aria-pressed="true">Off</button>
-                <button data-key="on">Remove colour</button>
-              </div>
-            </div>
-            <div id="ovKeyOpts" style="display:none">
-              <div class="field" style="margin-top:10px"><p class="label">Key colour</p>
-                <div class="seg three" id="ovKeyColor">
-                  <button data-c="#00d400" aria-pressed="true" style="background:#00d400;color:#062">Green</button>
-                  <button data-c="#0047ff" style="background:#0047ff;color:#fff">Blue</button>
-                  <button data-c="#ffffff" style="background:#fff;color:#111">White</button>
-                </div>
-                <input id="ovPick" type="color" value="#00d400" style="width:100%;margin-top:8px;height:34px;background:var(--paper);border:1px solid var(--line-2);border-radius:9px;cursor:pointer">
-              </div>
-              <div class="field" style="margin-top:10px"><p class="label">Tolerance <span id="ovTolLabel">30%</span></p>
-                <input id="ovTol" type="range" min="1" max="80" value="30" style="width:100%;accent-color:var(--brand)"></div>
-              <div class="field" style="margin-top:10px"><p class="label">Edge softness <span id="ovSoftLabel">10%</span></p>
-                <input id="ovSoft" type="range" min="0" max="50" value="10" style="width:100%;accent-color:var(--brand)"></div>
-            </div>
-            <button class="btn-ghost" id="ovRemove" style="margin-top:12px">Remove overlay</button>
-            <p class="note">Drop a green-screen clip on top, key out the colour, and place it as PIP. Preview updates live; baked into the export.</p>
-          </div>
-        </div>
-      </div>
     </div>
     <div class="stagewrap">
 <div class="stage-card">
@@ -585,7 +479,6 @@
           </div>
         </div>
         <div class="stklayer" id="ovLayer"></div>
-        <div class="stklayer" id="txtLayer"></div>
         <div class="stklayer" id="stkLayer"></div>
         <div class="txtl" id="txtLayer"></div>
         <div class="dim-badge" id="dimBadge">—</div>
@@ -766,7 +659,7 @@
   function resetUI(){
     video.pause(); video.removeAttribute("src"); video.load();
     if(lastUrl){URL.revokeObjectURL(lastUrl);lastUrl=null;}
-    clearStickers(); if(typeof texts!=="undefined"){texts.forEach(t=>t.el.remove());texts=[];selText=null;}
+    clearStickers(); texts.forEach(t=>t.el.remove()); texts=[]; selText=null; removeOverlay();
     editor.classList.add("hidden"); dropzone.classList.remove("hidden"); document.body.classList.remove("app");
     fileInput.value=""; result.classList.remove("on"); progress.classList.remove("on");
   }
@@ -805,7 +698,8 @@
     cropEl.style.display=blur?"none":"block"; cropEl.classList.toggle("locked",original);
     if(!blur){const x=dispOffX+crop.x*dispScale,y=dispOffY+crop.y*dispScale,w=crop.w*dispScale,h=crop.h*dispScale;cropEl.style.left=x+"px";cropEl.style.top=y+"px";cropEl.style.width=w+"px";cropEl.style.height=h+"px";}
     const out=outputDims(); dimBadge.textContent=`OUT ${out.w}×${out.h}`;
-    renderStickers(); if(typeof layoutPip==="function")layoutPip(); if(typeof layoutTexts==="function")layoutTexts();
+    renderStickers();
+    layoutPip(); layoutTexts();
   }
 
   // ---- geometry ----
@@ -1290,7 +1184,8 @@
   function buildVideoFilterArgs(out,segS,segE){
     const eq=enhanceEq(),r=rotTokens();
     const segTexts=texts.filter(t=>t.end>segS+0.02&&t.start<segE-0.02);
-    if(!stickers.length&&!(ovEl&&ovFileObj)&&!segTexts.length)return {filterArgs:buildFilterArgs(out),stickerInputs:[],stickerFiles:[]};
+    const hasOv=!!(ovEl&&ovURL);
+    if(!stickers.length&&!hasOv&&!segTexts.length)return {filterArgs:buildFilterArgs(out),stickerInputs:[],stickerFiles:[]};
     let base;
     if(mode==="blur"){
       const pre=r.length?r.join(",")+",":""; const eqInner=eq?","+eq:"";
@@ -1303,26 +1198,20 @@
       base=`[0:v]${t.join(",")}[base]`;
     }
     const parts=[base],stickerInputs=[],stickerFiles=[]; let last="base"; let idx=0;
-    // PIP / chroma-key overlay first (sits under stickers)
-    if(ovEl&&ovFileObj){
+    if(hasOv){
       idx++;
       const ow=Math.max(2,evenly(ovBox.fw*out.w));
       const ox=Math.round(ovBox.fx*out.w), oy=Math.round(ovBox.fy*out.h);
       const opa=((+ovOpac.value)/100).toFixed(3);
       let ch=`[${idx}:v]scale=${ow}:-1`;
-      if(ckOn){
-        const c=ckColor.value.replace("#","0x");
-        ch+=`,colorkey=${c}:${((+ckSim.value)/100).toFixed(3)}:${((+ckBl.value)/100).toFixed(3)}`;
-      }
+      if(ckOn)ch+=`,colorkey=${ckColor.value.replace("#","0x")}:${((+ckSim.value)/100).toFixed(3)}:${((+ckBl.value)/100).toFixed(3)}`;
       ch+=`,format=rgba,colorchannelmixer=aa=${opa}[pip]`;
       parts.push(ch);
-      parts.push(`[${last}][pip]overlay=${ox}:${oy}[po]`);
-      last="po";
-      const oExt=(ovFileObj.name.match(/\.([a-z0-9]+)$/i)?.[1]||(ovIsVideo?"mp4":"png")).toLowerCase().replace(/[^a-z0-9]/g,"");
-      const oName=`pip.${oExt||"mp4"}`;
+      parts.push(`[${last}][pip]overlay=${ox}:${oy}[po]`); last="po";
+      const oExt=(ovFileObj.name.match(/\.([a-z0-9]+)$/i)?.[1]||(ovIsVideo?"mp4":"png")).toLowerCase().replace(/[^a-z0-9]/g,"")||"mp4";
+      const oName=`pip.${oExt}`;
       stickerFiles.push({fsName:oName,src:ovURL});
-      if(ovIsVideo)stickerInputs.push("-stream_loop","-1","-i",oName);
-      else stickerInputs.push("-i",oName);
+      if(ovIsVideo)stickerInputs.push("-stream_loop","-1","-i",oName); else stickerInputs.push("-i",oName);
     }
     stickers.forEach((s,i)=>{
       idx++; const sw=Math.max(2,evenly(s.fw*out.w));
@@ -1334,22 +1223,19 @@
       stickerFiles.push({fsName,src:s.src});
       stickerInputs.push("-ignore_loop","0","-i",fsName);
     });
-    // timed text overlays (PNG per text; fade in/out via alpha fade; enable window in segment-relative time)
     segTexts.forEach((t,i)=>{
       idx++;
       const c=rasterText(t,out);
-      const png=c.toDataURL("image/png");
-      const fsName=`txt${t.id}.png`;
-      stickerFiles.push({fsName,src:png});
-      stickerInputs.push("-loop","1","-i",fsName);
+      stickerFiles.push({fsName:`txt${t.id}.png`,src:c.toDataURL("image/png")});
+      stickerInputs.push("-loop","1","-i",`txt${t.id}.png`);
       const rs=Math.max(0,t.start-segS), re=Math.min(segE-segS,t.end-segS);
-      const inD=Math.min(0.45,(re-rs)/2);
+      const inD=Math.max(0.05,Math.min(0.45,(re-rs)/2));
       let ch=`[${idx}:v]format=rgba`;
       if(t.animIn!=="none")ch+=`,fade=t=in:st=${rs.toFixed(3)}:d=${inD.toFixed(3)}:alpha=1`;
-      if(t.animOut!=="none")ch+=`,fade=t=out:st=${Math.max(rs,(re-inD)).toFixed(3)}:d=${inD.toFixed(3)}:alpha=1`;
+      if(t.animOut!=="none")ch+=`,fade=t=out:st=${Math.max(rs,re-inD).toFixed(3)}:d=${inD.toFixed(3)}:alpha=1`;
       ch+=`[tx${i}]`;
       parts.push(ch);
-      const px=Math.round(t.fx*out.w - c.width/2), py=Math.round(t.fy*out.h - c.height/2);
+      const px=Math.round(t.fx*out.w-c.width/2), py=Math.round(t.fy*out.h-c.height/2);
       parts.push(`[${last}][tx${i}]overlay=${px}:${py}:enable='between(t,${rs.toFixed(3)},${re.toFixed(3)})'[to${i}]`);
       last=`to${i}`;
     });
@@ -1502,20 +1388,18 @@
     }
     if(ovEl&&ovCanvas){
       const n=ovNatural(); const w=ovBox.fw*out.w, h=w*(n.h/n.w);
-      const x=ovBox.fx*out.w, y=ovBox.fy*out.h;
       ctx.save(); ctx.globalAlpha=(+ovOpac.value)/100;
-      try{ ctx.drawImage(ovCanvas,x,y,w,h); }catch(_){}
+      try{ ctx.drawImage(ovCanvas, ovBox.fx*out.w, ovBox.fy*out.h, w, h); }catch(_){}
       ctx.restore();
     }
     drawStickers(out,ctx);
-    // texts on top, with live animation
     const tt=video.currentTime;
     texts.forEach(t=>{
       const st=textAnim(t,tt); if(!st)return;
-      const c=t.__ras&&t.__ras.w===out.w?t.__ras.c:(t.__ras={w:out.w,c:rasterText(t,out)}).c;
-      const w=c.width*st.sc,h=c.height*st.sc;
+      if(!t.__ras||t.__ras.w!==out.w)t.__ras={w:out.w,c:rasterText(t,out)};
+      const c=t.__ras.c, w=c.width*st.sc, h=c.height*st.sc;
       ctx.save(); ctx.globalAlpha=st.a;
-      ctx.drawImage(c, t.fx*out.w - w/2, t.fy*out.h - h/2 + st.dy*(out.h/400), w, h);
+      ctx.drawImage(c, t.fx*out.w-w/2, t.fy*out.h-h/2+st.dy*(out.h/400), w, h);
       ctx.restore();
     });
   }
@@ -1607,160 +1491,149 @@
   ["dragover","drop"].forEach(ev=>window.addEventListener(ev,e=>{ if(!e.target.closest("#dropzone")) e.preventDefault(); },false));
 
   // ---- text & titles ----
-  const txtLayer=$("txtLayer"),txtAddBtn=$("txtAdd"),txtCaptionBtn=$("txtCaption"),txtChips=$("txtChips"),txtEditor=$("txtEditor");
-  const txtContent=$("txtContent"),txtFont=$("txtFont"),txtSize=$("txtSize"),txtSizeLbl=$("txtSizeLbl"),txtFontUp=$("txtFontUp");
-  const txtColor=$("txtColor"),txtStroke=$("txtStroke"),txtBg=$("txtBg"),txtStartBtn=$("txtStart"),txtEndBtn=$("txtEnd"),txtTimeLbl=$("txtTimeLbl");
-  const animInSel=$("animIn"),animOutSel=$("animOut"),animLoopSel=$("animLoop"),txtDeleteBtn=$("txtDelete");
+  const txtLayer=$("txtLayer"),txtAdd=$("txtAdd"),txtOpts=$("txtOpts"),txtStr=$("txtStr"),txtFont=$("txtFont"),
+        txtSize=$("txtSize"),txtSizeLbl=$("txtSizeLbl"),txtColor=$("txtColor"),txtStyleSel=$("txtStyle"),
+        txtStartBtn=$("txtStart"),txtEndBtn=$("txtEnd"),txtFullBtn=$("txtFull"),txtTimeLbl=$("txtTimeLbl"),
+        animInSel=$("animIn"),animOutSel=$("animOut"),animLoopSel=$("animLoop"),txtDeleteBtn=$("txtDelete"),
+        srtFile=$("srtFile"),fontFile=$("fontFile");
   let texts=[],txtSeq=0,selText=null;
-  const ANIM_D=0.5;
+  const ANIM_D=0.45;
 
-  function newText(preset){
+  function addText(o){
     const d=video.duration||0;
-    const t={id:++txtSeq,content:preset?"Your caption":"Your text",font:"Inter",sizeF:preset?0.045:0.06,
-      color:"#ffffff",stroke:true,bg:!!preset,fx:preset?0.5:0.5,fy:preset?0.85:0.4,
-      start:preset?video.currentTime:0,end:preset?Math.min(d,video.currentTime+3):Infinity,
-      animIn:"fade",animOut:"fade",loop:"none"};
-    const el=document.createElement("div"); el.className="txtel"; t.el=el; txtLayer.appendChild(el);
+    const t={id:++txtSeq,str:o.str||"Your text",font:o.font||"Bricolage Grotesque",sizeF:(o.sizeF||0.06),
+      color:o.color||"#ffffff",style:o.style||"outline",fx:(o.fx!==undefined?o.fx:0.5),fy:(o.fy!==undefined?o.fy:0.5),
+      start:(o.start!==undefined?o.start:0),end:(o.end!==undefined?o.end:d),animIn:o.animIn||"fade",animOut:o.animOut||"fade",loop:o.loop||"none"};
+    const el=document.createElement("div"); el.className="txtitem"; t.el=el;
     el.addEventListener("pointerdown",ev=>{
       ev.stopPropagation(); selectText(t);
       const fr=frameRect(); const sx=ev.clientX,sy=ev.clientY,ofx=t.fx,ofy=t.fy;
       el.setPointerCapture(ev.pointerId);
-      const mv=e2=>{t.fx=clamp(ofx+(e2.clientX-sx)/fr.w,0,1);t.fy=clamp(ofy+(e2.clientY-sy)/fr.h,0,1);};
+      const mv=e2=>{t.fx=clamp(ofx+(e2.clientX-sx)/fr.w,0,1);t.fy=clamp(ofy+(e2.clientY-sy)/fr.h,0,1);layoutTexts();};
       const up=()=>{el.removeEventListener("pointermove",mv);el.removeEventListener("pointerup",up);};
       el.addEventListener("pointermove",mv); el.addEventListener("pointerup",up);
     });
-    texts.push(t); selectText(t); renderChips();
+    txtLayer.appendChild(el); texts.push(t); selectText(t); styleTextEl(t); layoutTexts();
     return t;
   }
-  txtAddBtn.addEventListener("click",()=>{ if(video.duration)newText(false); });
-  txtCaptionBtn.addEventListener("click",()=>{ if(video.duration)newText(true); });
-
   function selectText(t){
     selText=t; texts.forEach(x=>x.el.classList.toggle("sel",x===t));
-    txtEditor.classList.toggle("hidden",!t); renderChips();
+    txtOpts.classList.toggle("hidden",!t);
     if(!t)return;
-    txtContent.value=t.content; txtFont.value=t.font; txtSize.value=Math.round(t.sizeF*100); txtSizeLbl.textContent=txtSize.value+"%";
-    txtColor.value=t.color; txtStroke.value=t.stroke?"on":"off"; txtBg.value=t.bg?"on":"off";
+    txtStr.value=t.str; txtFont.value=t.font; txtSize.value=Math.round(t.sizeF*100); txtSizeLbl.textContent=txtSize.value+"%";
+    txtColor.value=t.color; txtStyleSel.value=t.style;
     animInSel.value=t.animIn; animOutSel.value=t.animOut; animLoopSel.value=t.loop;
     refreshTimeLbl();
   }
-  function renderChips(){
-    txtChips.innerHTML="";
+  function refreshTimeLbl(){ if(selText)txtTimeLbl.textContent=`Shows ${fmt(selText.start)} → ${fmt(selText.end)}`; }
+  function styleTextEl(t){
+    t.el.textContent=t.str;
+    t.el.style.fontFamily=`"${t.font}",sans-serif`;
+    t.el.style.color=t.color;
+    t.el.style.fontWeight="800";
+    if(t.style==="outline"){t.el.style.textShadow="-2px 0 #000,2px 0 #000,0 -2px #000,0 2px #000,2px 2px #000,-2px -2px #000";t.el.style.background="none";t.el.style.borderRadius="0";t.el.style.padding="2px 4px";}
+    else if(t.style==="pill"){t.el.style.textShadow="none";t.el.style.background="rgba(0,0,0,.72)";t.el.style.borderRadius="8px";t.el.style.padding="4px 10px";}
+    else {t.el.style.textShadow="none";t.el.style.background="none";t.el.style.borderRadius="0";t.el.style.padding="2px 4px";}
+  }
+  function layoutTexts(){
+    const fr=frameRect(); if(!fr.w)return;
     texts.forEach(t=>{
-      const c=document.createElement("span"); c.className="txtchip"+(t===selText?" sel":"");
-      c.textContent=t.content.split("\n")[0]||"(empty)";
-      c.addEventListener("click",()=>selectText(t)); txtChips.appendChild(c);
+      t.el.style.fontSize=(t.sizeF*fr.w)+"px";
+      t.el.style.left="0px"; t.el.style.top="0px";
+      const r=t.el.getBoundingClientRect();
+      t.el.style.left=(fr.left+t.fx*fr.w - r.width/2)+"px";
+      t.el.style.top=(fr.top+t.fy*fr.h - r.height/2)+"px";
+    });
+    updateTextPreview();
+  }
+  function textAnim(t,tt){
+    if(tt<t.start||tt>t.end)return null;
+    let a=1,dy=0,sc=1;
+    const inD=Math.min(ANIM_D,(t.end-t.start)/2), outD=inD;
+    const p=tt-t.start,q=t.end-tt;
+    if(t.animIn!=="none"&&p<inD){const k=p/inD;
+      if(t.animIn==="fade")a=k; else if(t.animIn==="slide"){a=k;dy=(1-k)*30;} else if(t.animIn==="pop"){a=1;sc=0.4+0.6*Math.min(1,k*1.3);} }
+    if(t.animOut!=="none"&&q<outD){const k=q/outD;
+      if(t.animOut==="fade")a=Math.min(a,k); else if(t.animOut==="slide"){a=Math.min(a,k);dy=(1-k)*30;} }
+    if(t.loop==="pulse")sc*=1+0.05*Math.sin((tt-t.start)*2*Math.PI*1.2);
+    return {a,dy,sc};
+  }
+  function updateTextPreview(){
+    const tt=video.currentTime;
+    texts.forEach(t=>{
+      const st=textAnim(t,tt);
+      if(!st){t.el.style.display="none";return;}
+      t.el.style.display="block"; t.el.style.opacity=st.a;
+      t.el.style.transform=`translateY(${st.dy}px) scale(${st.sc})`;
     });
   }
-  function refreshTimeLbl(){
-    if(!selText)return;
-    txtTimeLbl.textContent=(selText.end===Infinity&&selText.start<=0)?"Shows for the whole clip."
-      :`Shows ${fmt(selText.start)} \u2192 ${selText.end===Infinity?"end":fmt(selText.end)}.`;
-  }
-  txtContent.addEventListener("input",()=>{if(selText){selText.content=txtContent.value;renderChips();}});
-  txtFont.addEventListener("change",()=>{if(selText)selText.font=txtFont.value;});
-  txtSize.addEventListener("input",()=>{txtSizeLbl.textContent=txtSize.value+"%";if(selText)selText.sizeF=(+txtSize.value)/100;});
-  txtColor.addEventListener("input",()=>{if(selText)selText.color=txtColor.value;});
-  txtStroke.addEventListener("change",()=>{if(selText)selText.stroke=txtStroke.value==="on";});
-  txtBg.addEventListener("change",()=>{if(selText)selText.bg=txtBg.value==="on";});
-  txtStartBtn.addEventListener("click",()=>{if(selText){selText.start=video.currentTime;if(selText.end<=selText.start)selText.end=Infinity;refreshTimeLbl();}});
-  txtEndBtn.addEventListener("click",()=>{if(selText){selText.end=Math.max(video.currentTime,selText.start+0.2);refreshTimeLbl();}});
+  txtAdd.addEventListener("click",()=>addText({start:Math.max(0,video.currentTime),end:video.duration||0}));
+  txtStr.addEventListener("input",()=>{if(selText){selText.str=txtStr.value;selText.__ras=null;styleTextEl(selText);layoutTexts();}});
+  txtFont.addEventListener("change",()=>{if(selText){selText.font=txtFont.value;selText.__ras=null;styleTextEl(selText);layoutTexts();}});
+  txtSize.addEventListener("input",()=>{txtSizeLbl.textContent=txtSize.value+"%";if(selText){selText.sizeF=(+txtSize.value)/100;selText.__ras=null;layoutTexts();}});
+  txtColor.addEventListener("input",()=>{if(selText){selText.color=txtColor.value;selText.__ras=null;styleTextEl(selText);}});
+  txtStyleSel.addEventListener("change",()=>{if(selText){selText.style=txtStyleSel.value;selText.__ras=null;styleTextEl(selText);}});
   animInSel.addEventListener("change",()=>{if(selText)selText.animIn=animInSel.value;});
   animOutSel.addEventListener("change",()=>{if(selText)selText.animOut=animOutSel.value;});
   animLoopSel.addEventListener("change",()=>{if(selText)selText.loop=animLoopSel.value;});
-  txtDeleteBtn.addEventListener("click",()=>{
-    if(!selText)return; selText.el.remove(); texts=texts.filter(x=>x!==selText); selText=null;
-    txtEditor.classList.add("hidden"); renderChips();
-  });
-  txtFontUp.addEventListener("change",async e=>{
+  txtStartBtn.addEventListener("click",()=>{if(selText){selText.start=clamp(video.currentTime,0,selText.end-0.1);refreshTimeLbl();updateTextPreview();}});
+  txtEndBtn.addEventListener("click",()=>{if(selText){selText.end=clamp(video.currentTime,selText.start+0.1,video.duration||0);refreshTimeLbl();updateTextPreview();}});
+  txtFullBtn.addEventListener("click",()=>{if(selText){selText.start=0;selText.end=video.duration||0;refreshTimeLbl();updateTextPreview();}});
+  txtDeleteBtn.addEventListener("click",()=>{if(!selText)return;const i=texts.indexOf(selText);selText.el.remove();texts.splice(i,1);selText=null;txtOpts.classList.add("hidden");});
+  document.querySelectorAll('[data-tpl]').forEach(b=>b.addEventListener("click",()=>{
+    if(!selText)return;
+    const tpl=b.dataset.tpl;
+    if(tpl==="title"){Object.assign(selText,{sizeF:0.09,style:"outline",fy:0.18,fx:0.5,animIn:"pop",animOut:"fade"});}
+    if(tpl==="lower"){Object.assign(selText,{sizeF:0.05,style:"pill",fy:0.82,fx:0.28,animIn:"slide",animOut:"slide"});}
+    if(tpl==="caption"){Object.assign(selText,{sizeF:0.045,style:"pill",fy:0.9,fx:0.5,animIn:"fade",animOut:"fade"});}
+    selText.__ras=null; selectText(selText); styleTextEl(selText); layoutTexts();
+  }));
+  fontFile.addEventListener("change",async e=>{
     const f=e.target.files[0]; if(!f)return;
     const name=f.name.replace(/\.[^.]+$/,"").replace(/[^\w -]/g,"")||"Custom";
     try{
       const face=new FontFace(name,await f.arrayBuffer()); await face.load(); document.fonts.add(face);
-      const opt=document.createElement("option"); opt.value=name; opt.textContent=name+" \u00B7 custom"; txtFont.appendChild(opt);
-      txtFont.value=name; if(selText)selText.font=name;
+      const opt=document.createElement("option"); opt.value=name; opt.textContent=name+" (custom)"; txtFont.appendChild(opt);
+      txtFont.value=name; if(selText){selText.font=name;selText.__ras=null;styleTextEl(selText);layoutTexts();}
     }catch(_){ showErr("Couldn't load that font file."); }
-    txtFontUp.value="";
+    fontFile.value="";
   });
-
-  // animation state at time t (relative to element window)
-  function textAnim(t,el){
-    const dur=(el.end===Infinity?(video.duration||1e9):el.end)-el.start;
-    const rel=t-el.start;
-    if(rel<0||rel>dur)return null;
-    let a=1,dx=0,dy=0,sc=1;
-    if(el.animIn!=="none"&&rel<ANIM_D){const p=rel/ANIM_D;
-      if(el.animIn==="fade")a=p; else if(el.animIn==="up"){a=p;dy=(1-p)*0.06;} else if(el.animIn==="pop"){a=p;sc=0.6+0.4*p;}}
-    const toEnd=dur-rel;
-    if(el.animOut!=="none"&&toEnd<ANIM_D&&isFinite(dur)){const p=toEnd/ANIM_D;
-      if(el.animOut==="fade")a*=p; else if(el.animOut==="down"){a*=p;dy+=(1-p)*0.06;}}
-    if(el.loop==="pulse")sc*=1+0.05*Math.sin(rel*4);
-    return{a,dx,dy,sc};
-  }
-  // live preview of text elements (DOM styled per frame)
-  function tickTexts(){
-    const fr=frameRect(); const t=video.currentTime;
-    texts.forEach(el=>{
-      const st=textAnim(t,el);
-      if(!st||!fr.w){el.el.style.display="none";return;}
-      el.el.style.display="block";
-      const px=el.sizeF*fr.w;
-      el.el.textContent=el.content;
-      el.el.style.font=`700 ${px}px "${el.font}", sans-serif`;
-      el.el.style.color=el.color;
-      el.el.style.webkitTextStroke=el.stroke?`${Math.max(1,px*0.05)}px rgba(0,0,0,.85)`:"0";
-      el.el.style.background=el.bg?"rgba(0,0,0,.55)":"transparent";
-      el.el.style.borderRadius=el.bg?px*0.3+"px":"0";
-      el.el.style.padding=el.bg?`${px*0.15}px ${px*0.35}px`:"2px 4px";
-      el.el.style.opacity=st.a;
-      el.el.style.left=(fr.left+el.fx*fr.w)+"px";
-      el.el.style.top=(fr.top+(el.fy+st.dy)*fr.h)+"px";
-      el.el.style.transform=`translate(-50%,-50%) scale(${st.sc})`;
+  srtFile.addEventListener("change",async e=>{
+    const f=e.target.files[0]; if(!f)return;
+    const raw=await f.text();
+    const toSec=x=>{const m=x.trim().replace(",",".").split(":");return (+m[0])*3600+(+m[1])*60+parseFloat(m[2]);};
+    let n=0;
+    raw.replace(/\r/g,"").split(/\n\n+/).forEach(block=>{
+      const lines=block.split("\n").filter(Boolean);
+      const ti=lines.findIndex(l=>l.includes("-->")); if(ti<0)return;
+      const [a,b]=lines[ti].split("-->"); const textLines=lines.slice(ti+1);
+      if(!textLines.length)return;
+      if(n++>400)return;
+      addText({str:textLines.join("\n"),sizeF:0.045,style:"pill",fx:0.5,fy:0.9,start:toSec(a),end:toSec(b),animIn:"none",animOut:"none"});
     });
-    requestAnimationFrame(tickTexts);
-  }
-  requestAnimationFrame(tickTexts);
-
-  // draw texts onto an export canvas frame (Fast engine)
-  function drawTexts(out,ctx,tNow){
-    texts.forEach(el=>{
-      const st=textAnim(tNow,el); if(!st)return;
-      const px=el.sizeF*out.w;
-      ctx.save(); ctx.globalAlpha=st.a;
-      ctx.font=`700 ${px}px "${el.font}", sans-serif`;
-      ctx.textAlign="center"; ctx.textBaseline="middle";
-      const cx=el.fx*out.w, cy=(el.fy+st.dy)*out.h;
-      ctx.translate(cx,cy); ctx.scale(st.sc,st.sc);
-      const lines=el.content.split("\n"); const lh=px*1.15;
-      if(el.bg){
-        let mw=0; lines.forEach(l=>{mw=Math.max(mw,ctx.measureText(l).width);});
-        const bw=mw+px*0.7, bh=lines.length*lh+px*0.3;
-        ctx.fillStyle="rgba(0,0,0,.55)";
-        ctx.beginPath(); ctx.roundRect(-bw/2,-bh/2,bw,bh,px*0.3); ctx.fill();
-      }
-      lines.forEach((l,i)=>{
-        const y=(i-(lines.length-1)/2)*lh;
-        if(el.stroke){ ctx.lineWidth=Math.max(1.5,px*0.1); ctx.strokeStyle="rgba(0,0,0,.85)"; ctx.strokeText(l,0,y); }
-        ctx.fillStyle=el.color; ctx.fillText(l,0,y);
-      });
-      ctx.restore();
-    });
-  }
-  // render one text element to a transparent PNG for the ffmpeg engine
-  function renderTextPNG(el,out){
-    const px=el.sizeF*out.w; const c=document.createElement("canvas"); const cc=c.getContext("2d");
-    cc.font=`700 ${px}px "${el.font}", sans-serif`;
-    const lines=el.content.split("\n"); const lh=px*1.15;
-    let mw=0; lines.forEach(l=>{mw=Math.max(mw,cc.measureText(l).width);});
-    const pad=px*0.4; c.width=Math.max(2,Math.ceil(mw+pad*2)); c.height=Math.max(2,Math.ceil(lines.length*lh+pad*2));
-    cc.font=`700 ${px}px "${el.font}", sans-serif`; cc.textAlign="center"; cc.textBaseline="middle";
-    if(el.bg){cc.fillStyle="rgba(0,0,0,.55)";cc.beginPath();cc.roundRect(px*0.05,px*0.05,c.width-px*0.1,c.height-px*0.1,px*0.3);cc.fill();}
+    selText=null; texts.forEach(x=>x.el.classList.remove("sel")); txtOpts.classList.add("hidden");
+    srtFile.value="";
+  });
+  function rasterText(t,out){
+    const fpx=Math.max(8,Math.round(t.sizeF*out.w));
+    const c=document.createElement("canvas"); const x=c.getContext("2d");
+    const fontStr=`800 ${fpx}px "${t.font}",sans-serif`;
+    x.font=fontStr;
+    const lines=t.str.split("\n");
+    const lh=Math.round(fpx*1.25);
+    let w=0; lines.forEach(l=>{w=Math.max(w,x.measureText(l).width);});
+    const padX=t.style==="pill"?Math.round(fpx*0.5):Math.round(fpx*0.15);
+    const padY=t.style==="pill"?Math.round(fpx*0.3):Math.round(fpx*0.15);
+    c.width=Math.ceil(w)+padX*2+8; c.height=lh*lines.length+padY*2+8;
+    x.font=fontStr; x.textBaseline="top";
+    if(t.style==="pill"){x.fillStyle="rgba(0,0,0,.72)";const r=Math.round(fpx*0.35);
+      x.beginPath();x.roundRect(2,2,c.width-4,c.height-4,r);x.fill();}
     lines.forEach((l,i)=>{
-      const y=c.height/2+(i-(lines.length-1)/2)*lh;
-      if(el.stroke){cc.lineWidth=Math.max(1.5,px*0.1);cc.strokeStyle="rgba(0,0,0,.85)";cc.strokeText(l,c.width/2,y);}
-      cc.fillStyle=el.color; cc.fillText(l,c.width/2,y);
+      const lw=x.measureText(l).width, lx=(c.width-lw)/2, ly=padY+4+i*lh;
+      if(t.style==="outline"){x.lineWidth=Math.max(2,fpx*0.12);x.strokeStyle="#000";x.strokeText(l,lx,ly);}
+      x.fillStyle=t.color; x.fillText(l,lx,ly);
     });
-    return {url:c.toDataURL("image/png"),w:c.width,h:c.height};
+    return c;
   }
 
   // ---- overlay / PIP / chroma key ----
@@ -1770,7 +1643,6 @@
         ckSimLbl=$("ckSimLbl"),ckBlLbl=$("ckBlLbl"),ckPick=$("ckPick");
   let ovMedia=null,ovIsVideo=false,ovURL=null,ovFileObj=null,ovBox={fx:0.06,fy:0.06,fw:0.35},
       ckOn=false,ovEl=null,ovCanvas=null,ovCtx=null,ovRaf=null,picking=false;
-
   function hexToRGB(h){const n=parseInt(h.slice(1),16);return[(n>>16)&255,(n>>8)&255,n&255];}
   ovSize.addEventListener("input",()=>{ovSizeLbl.textContent=ovSize.value+"%";ovBox.fw=(+ovSize.value)/100;layoutPip();});
   ovOpac.addEventListener("input",()=>{ovOpacLbl.textContent=ovOpac.value+"%";if(ovEl)ovEl.style.opacity=(+ovOpac.value)/100;});
@@ -1780,8 +1652,53 @@
     ckSeg.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed","false"));
     b.setAttribute("aria-pressed","true"); ckOn=b.dataset.ck==="on"; ckOpts.classList.toggle("hidden",!ckOn);
   }));
-  ckPick.addEventListener("click",()=>{ picking=!picking; if(ovEl)ovEl.classList.toggle("picking",picking); ckPick.textContent=picking?"Click the colour…":"Eyedropper"; });
-
+  ckPick.addEventListener("click",()=>{ picking=!picking; if(ovEl)ovEl.classList.toggle("picking",picking); ckPick.textContent=picking?"Click the colour\u2026":"Eyedropper"; });
+  function ovNatural(){ if(!ovMedia)return{w:16,h:9}; return ovIsVideo?{w:ovMedia.videoWidth||16,h:ovMedia.videoHeight||9}:{w:ovMedia.naturalWidth||16,h:ovMedia.naturalHeight||9}; }
+  function layoutPip(){
+    if(!ovEl)return; const fr=frameRect(); if(!fr.w)return;
+    const n=ovNatural(); const w=ovBox.fw*fr.w, h=w*(n.h/n.w);
+    ovEl.style.left=(fr.left+ovBox.fx*fr.w)+"px"; ovEl.style.top=(fr.top+ovBox.fy*fr.h)+"px";
+    ovEl.style.width=w+"px"; ovEl.style.height=h+"px";
+  }
+  function pipLoop(){
+    if(!ovEl||!ovMedia){ovRaf=null;return;}
+    const n=ovNatural(); const W=Math.min(480,n.w||480), H=Math.max(2,Math.round(W*(n.h/n.w)));
+    if(ovCanvas.width!==W||ovCanvas.height!==H){ovCanvas.width=W;ovCanvas.height=H;}
+    try{
+      ovCtx.clearRect(0,0,W,H); ovCtx.drawImage(ovMedia,0,0,W,H);
+      if(ckOn){
+        const [kr,kg,kb]=hexToRGB(ckColor.value);
+        const sim=(+ckSim.value)/100*255, bl=(+ckBl.value)/100*255;
+        const img=ovCtx.getImageData(0,0,W,H), d=img.data;
+        for(let i=0;i<d.length;i+=4){
+          const dist=Math.sqrt((d[i]-kr)**2+(d[i+1]-kg)**2+(d[i+2]-kb)**2);
+          if(dist<sim)d[i+3]=0;
+          else if(bl>0&&dist<sim+bl)d[i+3]=Math.round(d[i+3]*((dist-sim)/bl));
+        }
+        ovCtx.putImageData(img,0,0);
+      }
+    }catch(_){}
+    ovRaf=requestAnimationFrame(pipLoop);
+  }
+  function pickColour(ev){
+    try{
+      const r=ovCanvas.getBoundingClientRect();
+      const x=Math.round((ev.clientX-r.left)/r.width*ovCanvas.width);
+      const y=Math.round((ev.clientY-r.top)/r.height*ovCanvas.height);
+      const d=ovCtx.getImageData(clamp(x,0,ovCanvas.width-1),clamp(y,0,ovCanvas.height-1),1,1).data;
+      ckColor.value="#"+[d[0],d[1],d[2]].map(v=>v.toString(16).padStart(2,"0")).join("");
+    }catch(_){}
+    picking=false; ovEl.classList.remove("picking"); ckPick.textContent="Eyedropper";
+  }
+  function removeOverlay(){
+    if(ovRaf){cancelAnimationFrame(ovRaf);ovRaf=null;}
+    if(ovMedia&&ovIsVideo){try{ovMedia.pause();}catch(_){}}
+    if(ovURL)URL.revokeObjectURL(ovURL);
+    if(ovEl)ovEl.remove();
+    ovEl=null;ovMedia=null;ovURL=null;ovFileObj=null;ovCanvas=null;ovCtx=null;
+    ovNameEl.style.display="none"; ovOpts.classList.add("hidden");
+  }
+  ovRemoveBtn.addEventListener("click",removeOverlay);
   ovFileIn.addEventListener("change",async e=>{
     const f=e.target.files[0]; if(!f)return;
     removeOverlay();
@@ -1792,13 +1709,11 @@
     ovEl.appendChild(ovCanvas);
     const rz=document.createElement("div"); rz.className="rz"; ovEl.appendChild(rz);
     ovLayer.appendChild(ovEl);
-    if(ovIsVideo){ ovMedia=document.createElement("video"); ovMedia.src=ovURL; ovMedia.loop=true; ovMedia.muted=true; ovMedia.playsInline=true; await ovMedia.play().catch(()=>{}); }
+    if(ovIsVideo){ ovMedia=document.createElement("video"); ovMedia.src=ovURL; ovMedia.loop=true; ovMedia.muted=true; ovMedia.playsInline=true; try{await ovMedia.play();}catch(_){} }
     else { ovMedia=new Image(); ovMedia.src=ovURL; try{await ovMedia.decode();}catch(_){} }
     ovNameEl.style.display="block"; ovNameEl.innerHTML="<b>"+f.name.replace(/</g,"&lt;")+"</b>";
     ovOpts.classList.remove("hidden"); ovEl.style.opacity=(+ovOpac.value)/100;
     ovFileIn.value=""; layoutPip(); pipLoop();
-
-    // drag / resize / eyedrop
     ovEl.addEventListener("pointerdown",ev=>{
       if(ev.target===rz)return;
       if(picking){ pickColour(ev); return; }
@@ -1817,56 +1732,6 @@
       rz.addEventListener("pointermove",mv); rz.addEventListener("pointerup",up);
     });
   });
-
-  function pickColour(ev){
-    try{
-      const r=ovCanvas.getBoundingClientRect();
-      const x=Math.round((ev.clientX-r.left)/r.width*ovCanvas.width);
-      const y=Math.round((ev.clientY-r.top)/r.height*ovCanvas.height);
-      const d=ovCtx.getImageData(clamp(x,0,ovCanvas.width-1),clamp(y,0,ovCanvas.height-1),1,1).data;
-      ckColor.value="#"+[d[0],d[1],d[2]].map(v=>v.toString(16).padStart(2,"0")).join("");
-    }catch(_){}
-    picking=false; ovEl.classList.remove("picking"); ckPick.textContent="Eyedropper";
-  }
-  function ovNatural(){ return ovIsVideo?{w:ovMedia.videoWidth||16,h:ovMedia.videoHeight||9}:{w:ovMedia.naturalWidth||16,h:ovMedia.naturalHeight||9}; }
-  function layoutPip(){
-    if(!ovEl)return; const fr=frameRect(); if(!fr.w)return;
-    const n=ovNatural(); const w=ovBox.fw*fr.w, h=w*(n.h/n.w);
-    ovEl.style.left=(fr.left+ovBox.fx*fr.w)+"px"; ovEl.style.top=(fr.top+ovBox.fy*fr.h)+"px";
-    ovEl.style.width=w+"px"; ovEl.style.height=h+"px";
-  }
-  // live preview: draw overlay into its canvas, applying chroma key per pixel
-  function pipLoop(){
-    if(!ovEl||!ovMedia){ovRaf=null;return;}
-    const n=ovNatural();
-    const W=Math.min(480,n.w||480), H=Math.max(2,Math.round(W*(n.h/n.w)));
-    if(ovCanvas.width!==W||ovCanvas.height!==H){ovCanvas.width=W;ovCanvas.height=H;}
-    try{
-      ovCtx.clearRect(0,0,W,H);
-      ovCtx.drawImage(ovMedia,0,0,W,H);
-      if(ckOn){
-        const [kr,kg,kb]=hexToRGB(ckColor.value);
-        const sim=(+ckSim.value)/100*255, bl=(+ckBl.value)/100*255;
-        const img=ovCtx.getImageData(0,0,W,H), d=img.data;
-        for(let i=0;i<d.length;i+=4){
-          const dist=Math.sqrt((d[i]-kr)**2+(d[i+1]-kg)**2+(d[i+2]-kb)**2);
-          if(dist<sim)d[i+3]=0;
-          else if(bl>0&&dist<sim+bl)d[i+3]=Math.round(d[i+3]*((dist-sim)/bl));
-        }
-        ovCtx.putImageData(img,0,0);
-      }
-    }catch(_){}
-    ovRaf=requestAnimationFrame(pipLoop);
-  }
-  function removeOverlay(){
-    if(ovRaf){cancelAnimationFrame(ovRaf);ovRaf=null;}
-    if(ovMedia&&ovIsVideo){try{ovMedia.pause();}catch(_){}}
-    if(ovURL)URL.revokeObjectURL(ovURL);
-    if(ovEl)ovEl.remove();
-    ovEl=null;ovMedia=null;ovURL=null;ovFileObj=null;ovCanvas=null;ovCtx=null;
-    ovNameEl.style.display="none"; ovOpts.classList.add("hidden");
-  }
-  ovRemoveBtn.addEventListener("click",removeOverlay);
 
   // ---- background music ----
   const musicInput=$("musicFile"),musicNameEl=$("musicName"),musicVol=$("musicVol"),origVol=$("origVol"),
