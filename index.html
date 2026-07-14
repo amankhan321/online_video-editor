@@ -6,7 +6,7 @@
 <title>Reframe — landscape to portrait</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&family=Anton&family=Bangers&display=swap" rel="stylesheet">
 <script src="./vendor/ffmpeg.js"></script>
 <script src="./vendor/ffmpeg-util.js"></script>
 <style>
@@ -263,10 +263,17 @@
   ::-webkit-scrollbar{width:10px;height:10px}
   ::-webkit-scrollbar-thumb{background:#2a2f3a;border-radius:6px;border:2px solid #0d0f13}
   ::-webkit-scrollbar-track{background:transparent}
+  .txtl{position:absolute;inset:0;z-index:6;pointer-events:none}
+  .txtitem{position:absolute;pointer-events:auto;cursor:move;white-space:pre-wrap;text-align:center;touch-action:none;line-height:1.25;border:1.5px dashed transparent;padding:2px 4px}
+  .txtitem.sel{border-color:var(--brand)}
   .pip{position:absolute;pointer-events:auto;cursor:move;border:1.5px solid var(--brand);touch-action:none;overflow:hidden;border-radius:4px}
   .pip canvas,.pip video,.pip img{width:100%;height:100%;display:block;object-fit:fill}
   .pip .rz{position:absolute;right:-8px;bottom:-8px;width:16px;height:16px;border-radius:3px;background:var(--brand);border:2px solid #fff;cursor:nwse-resize;z-index:2}
   .pip.picking{cursor:crosshair}
+  .txtel{position:absolute;pointer-events:auto;cursor:move;touch-action:none;white-space:pre-wrap;user-select:none;line-height:1.15;border:1.5px dashed transparent;padding:2px 4px}
+  .txtel.sel{border-color:var(--brand)}
+  .txtchip{font-family:var(--mono);font-size:10.5px;padding:5px 10px;border-radius:999px;border:1px solid var(--line-2);color:var(--ink-soft);cursor:pointer;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .txtchip.sel{border-color:var(--brand);color:var(--brand);background:rgba(23,212,198,.12)}
   .hidden{display:none!important}
 </style>
 </head>
@@ -301,6 +308,8 @@
       <button class="railbtn" data-tool="rotate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v4h-4"/></svg><span>Rotate</span></button>
       <button class="railbtn" data-tool="effects"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 4.6L18.5 9l-4.6 1.9L12 15l-1.9-4.1L5.5 9l4.6-1.4z"/><path d="M18 15l.8 2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-1z"/></svg><span>Effects</span></button>
       <button class="railbtn" data-tool="stickers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M20 12a8 8 0 1 0-8 8c0-4 4-2 6-4s2-4 2-4z"/><circle cx="9.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><circle cx="14.5" cy="10" r="1.1" fill="currentColor" stroke="none"/></svg><span>Stickers</span></button>
+      <button class="railbtn" data-tool="text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6V4h16v2M12 4v16M9 20h6"/></svg><span>Text</span></button>
+      <button class="railbtn" data-tool="text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 6V4h14v2M12 4v16M9 20h6"/></svg><span>Text</span></button>
       <button class="railbtn" data-tool="overlay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="4" width="14" height="11" rx="2"/><rect x="10" y="10" width="11" height="10" rx="2" fill="var(--paper)"/></svg><span>Overlay</span></button>
       <button class="railbtn" data-tool="audio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V6l11-3v12"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="15" r="3"/></svg><span>Audio</span></button>
       <button class="railbtn" data-tool="overlay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="4" width="13" height="10" rx="1.5"/><rect x="10" y="10" width="11" height="10" rx="1.5" fill="currentColor" fill-opacity=".18"/></svg><span>Overlay</span></button>
@@ -354,6 +363,106 @@
         </label>
         <p class="note">Tap to add, drag to place, corner to resize, × to remove. Baked into the export.</p>
       </div>
+      </div>
+      <div class="toolpane" data-pane="text">
+        <div class="panel">
+          <p class="label">Text &amp; titles</p>
+          <div class="seg">
+            <button id="txtAdd">+ Add text</button>
+            <button id="txtCaption">+ Caption</button>
+          </div>
+          <div id="txtChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px"></div>
+          <div id="txtEditor" class="hidden" style="margin-top:12px">
+            <textarea id="txtContent" rows="2" style="width:100%;background:var(--paper);border:1px solid var(--line-2);border-radius:10px;color:var(--ink);font-family:var(--sans);font-size:13px;padding:10px;resize:vertical"></textarea>
+            <div class="row2" style="margin-top:10px">
+              <div class="field"><p class="label">Font</p>
+                <select id="txtFont">
+                  <option value="Inter" selected>Inter</option>
+                  <option value="Bricolage Grotesque">Bricolage</option>
+                  <option value="Anton">Anton · bold title</option>
+                  <option value="Bangers">Bangers · meme</option>
+                  <option value="Space Mono">Space Mono</option>
+                </select></div>
+              <div class="field"><p class="label">Size <span id="txtSizeLbl">6%</span></p>
+                <input id="txtSize" type="range" min="2" max="20" value="6" style="width:100%;accent-color:var(--brand);margin-top:12px"></div>
+            </div>
+            <label class="stkupload" style="margin-top:10px">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              Custom font (TTF / OTF / WOFF)
+              <input id="txtFontUp" type="file" accept=".ttf,.otf,.woff,.woff2,font/*" class="hidden">
+            </label>
+            <div class="customrow" style="margin-top:10px">
+              <div class="field"><span class="cap">Colour</span><input id="txtColor" type="color" value="#ffffff" style="width:100%;height:38px;background:var(--paper);border:1px solid var(--line-2);border-radius:9px;cursor:pointer"></div>
+              <div class="field"><span class="cap">Outline</span><select id="txtStroke"><option value="on" selected>On</option><option value="off">Off</option></select></div>
+              <div class="field"><span class="cap">Backdrop</span><select id="txtBg"><option value="off" selected>Off</option><option value="on">Pill</option></select></div>
+            </div>
+            <p class="label" style="margin-top:14px">Timing</p>
+            <div class="seg">
+              <button class="tlbtn" id="txtStart" style="justify-content:center">Start = playhead</button>
+              <button class="tlbtn" id="txtEnd" style="justify-content:center">End = playhead</button>
+            </div>
+            <p class="note" id="txtTimeLbl">Shows for the whole clip.</p>
+            <p class="label" style="margin-top:14px">Animation</p>
+            <div class="customrow">
+              <div class="field"><span class="cap">In</span><select id="animIn"><option value="none">None</option><option value="fade" selected>Fade</option><option value="up">Slide up</option><option value="pop">Pop</option></select></div>
+              <div class="field"><span class="cap">Out</span><select id="animOut"><option value="none">None</option><option value="fade" selected>Fade</option><option value="down">Slide down</option></select></div>
+              <div class="field"><span class="cap">Loop</span><select id="animLoop"><option value="none" selected>None</option><option value="pulse">Pulse</option></select></div>
+            </div>
+            <p class="note">Fade in/out exports on both engines. Slide, pop and pulse export via the <b>Fast</b> engine (preview shows all).</p>
+            <button class="btn-ghost" id="txtDelete" style="margin-top:12px">Delete this text</button>
+          </div>
+          <p class="note" style="margin-top:12px"><b>Auto captions</b> and <b>AI voice (TTS)</b> need speech AI that can't run well in the browser — they're coming with the server upgrade. Manual subtitles: use <b>+ Caption</b> and set timing at the playhead.</p>
+        </div>
+      </div>
+      <div class="toolpane" data-pane="text">
+        <div class="panel">
+          <p class="label">Text &amp; titles</p>
+          <div class="seg">
+            <button id="txtAdd">+ Add text</button>
+            <label class="stkupload" style="margin-top:0;padding:9px;border-style:solid;border-color:var(--line-2)">Import .srt<input id="srtFile" type="file" accept=".srt,text/plain" class="hidden"></label>
+          </div>
+          <div id="txtOpts" class="hidden">
+            <div class="field" style="margin-top:12px"><p class="label">Text</p>
+              <textarea id="txtStr" rows="2" style="width:100%;background:var(--paper);color:var(--ink);border:1px solid var(--line-2);border-radius:9px;padding:9px;font-family:var(--sans);font-size:13px;resize:vertical"></textarea></div>
+            <div class="row2" style="margin-top:10px">
+              <div class="field"><p class="label">Font</p>
+                <select id="txtFont">
+                  <option value="Bricolage Grotesque" selected>Bricolage</option>
+                  <option value="Inter">Inter</option>
+                  <option value="Space Mono">Space Mono</option>
+                  <option value="Georgia">Serif</option>
+                  <option value="Impact">Impact</option>
+                </select></div>
+              <div class="field"><p class="label">Size <span id="txtSizeLbl">6%</span></p>
+                <input id="txtSize" type="range" min="2" max="16" value="6" style="width:100%;accent-color:var(--brand);margin-top:12px"></div>
+            </div>
+            <label class="stkupload" style="margin-top:10px">Upload custom font (.ttf / .otf)<input id="fontFile" type="file" accept=".ttf,.otf,.woff,.woff2" class="hidden"></label>
+            <div class="customrow" style="margin-top:10px">
+              <div class="field"><span class="cap">Colour</span><input id="txtColor" type="color" value="#ffffff" style="width:100%;height:38px;background:var(--paper);border:1px solid var(--line-2);border-radius:9px;cursor:pointer"></div>
+              <div class="field"><span class="cap">Style</span>
+                <select id="txtStyle"><option value="plain">Plain</option><option value="outline" selected>Outline</option><option value="pill">Pill background</option></select></div>
+            </div>
+            <div class="field" style="margin-top:12px"><p class="label">Template</p>
+              <div class="seg three">
+                <button data-tpl="title">Title</button><button data-tpl="lower">Lower third</button><button data-tpl="caption">Caption</button>
+              </div></div>
+            <p class="label" style="margin-top:14px">Timing</p>
+            <div class="seg three">
+              <button id="txtStart">Start = playhead</button><button id="txtEnd">End = playhead</button><button id="txtFull">Full clip</button>
+            </div>
+            <p class="note" id="txtTimeLbl" style="margin-top:8px"></p>
+            <p class="label" style="margin-top:14px">Animation</p>
+            <div class="row2">
+              <div class="field"><p class="label">In</p><select id="animIn"><option value="none">None</option><option value="fade" selected>Fade</option><option value="slide">Slide up</option><option value="pop">Pop</option></select></div>
+              <div class="field"><p class="label">Out</p><select id="animOut"><option value="none">None</option><option value="fade" selected>Fade</option><option value="slide">Slide down</option></select></div>
+            </div>
+            <div class="field" style="margin-top:10px"><p class="label">Loop</p>
+              <select id="animLoop"><option value="none" selected>None</option><option value="pulse">Pulse</option></select></div>
+            <p class="note">Fade in/out bakes into both engines. Slide, Pop and Pulse bake on the <b>Fast</b> engine and show in preview; on Compatible they fall back to fade.</p>
+            <button class="btn-ghost" id="txtDelete" style="margin-top:12px">Delete this text</button>
+          </div>
+          <p class="note" style="margin-top:12px"><b>Auto captions &amp; AI voice:</b> real speech-to-text and TTS need a server — coming with the server engine. Meanwhile .srt import gives you timed subtitles (export an SRT free from CapCut or YouTube Studio).</p>
+        </div>
       </div>
       <div class="toolpane" data-pane="overlay">
         <div class="panel">
@@ -476,7 +585,9 @@
           </div>
         </div>
         <div class="stklayer" id="ovLayer"></div>
+        <div class="stklayer" id="txtLayer"></div>
         <div class="stklayer" id="stkLayer"></div>
+        <div class="txtl" id="txtLayer"></div>
         <div class="dim-badge" id="dimBadge">—</div>
         <div class="rec" id="rec"><span class="dot"></span>ENCODING</div>
       </div>
@@ -655,7 +766,7 @@
   function resetUI(){
     video.pause(); video.removeAttribute("src"); video.load();
     if(lastUrl){URL.revokeObjectURL(lastUrl);lastUrl=null;}
-    clearStickers();
+    clearStickers(); if(typeof texts!=="undefined"){texts.forEach(t=>t.el.remove());texts=[];selText=null;}
     editor.classList.add("hidden"); dropzone.classList.remove("hidden"); document.body.classList.remove("app");
     fileInput.value=""; result.classList.remove("on"); progress.classList.remove("on");
   }
@@ -694,7 +805,7 @@
     cropEl.style.display=blur?"none":"block"; cropEl.classList.toggle("locked",original);
     if(!blur){const x=dispOffX+crop.x*dispScale,y=dispOffY+crop.y*dispScale,w=crop.w*dispScale,h=crop.h*dispScale;cropEl.style.left=x+"px";cropEl.style.top=y+"px";cropEl.style.width=w+"px";cropEl.style.height=h+"px";}
     const out=outputDims(); dimBadge.textContent=`OUT ${out.w}×${out.h}`;
-    renderStickers(); if(typeof layoutPip==="function")layoutPip();
+    renderStickers(); if(typeof layoutPip==="function")layoutPip(); if(typeof layoutTexts==="function")layoutTexts();
   }
 
   // ---- geometry ----
@@ -848,7 +959,7 @@
   video.addEventListener("pause",()=>{playing=false;if(!recording)playIco.innerHTML='<path d="M8 5v14l11-7z"/>';drawPreview();});
   video.addEventListener("seeked",drawPreview);
   video.addEventListener("loadeddata",()=>{sizePreview();drawPreview();requestAnimationFrame(layout);});
-  video.addEventListener("timeupdate",()=>{if(recording)return;previewSkip();if(video.duration)seek.value=String(Math.round(video.currentTime/video.duration*1000));timeEl.textContent=`${fmt(video.currentTime)} / ${fmt(video.duration||0)}`;renderPlayhead();});
+  video.addEventListener("timeupdate",()=>{if(recording)return;previewSkip();if(video.duration)seek.value=String(Math.round(video.currentTime/video.duration*1000));timeEl.textContent=`${fmt(video.currentTime)} / ${fmt(video.duration||0)}`;renderPlayhead();updateTextPreview();});
   video.addEventListener("durationchange",()=>{ if(isFinite(video.duration)){ if(!timeline.length){initTimeline();} else { const last=timeline[timeline.length-1]; if(last.end>video.duration)last.end=video.duration; renderTimeline(); } } });
   seek.addEventListener("input",()=>{if(video.duration)video.currentTime=(+seek.value/1000)*video.duration;});
 
@@ -1176,9 +1287,10 @@
     return ["-vf",t.join(",")];
   }
   // Full video filter incl. sticker overlays. Returns filter args + extra inputs + files to write.
-  function buildVideoFilterArgs(out){
+  function buildVideoFilterArgs(out,segS,segE){
     const eq=enhanceEq(),r=rotTokens();
-    if(!stickers.length&&!(ovEl&&ovFileObj))return {filterArgs:buildFilterArgs(out),stickerInputs:[],stickerFiles:[]};
+    const segTexts=texts.filter(t=>t.end>segS+0.02&&t.start<segE-0.02);
+    if(!stickers.length&&!(ovEl&&ovFileObj)&&!segTexts.length)return {filterArgs:buildFilterArgs(out),stickerInputs:[],stickerFiles:[]};
     let base;
     if(mode==="blur"){
       const pre=r.length?r.join(",")+",":""; const eqInner=eq?","+eq:"";
@@ -1221,6 +1333,25 @@
       const fsName=`stk${i}.${(s.ext||"gif").replace(/[^a-z0-9]/gi,"")||"gif"}`;
       stickerFiles.push({fsName,src:s.src});
       stickerInputs.push("-ignore_loop","0","-i",fsName);
+    });
+    // timed text overlays (PNG per text; fade in/out via alpha fade; enable window in segment-relative time)
+    segTexts.forEach((t,i)=>{
+      idx++;
+      const c=rasterText(t,out);
+      const png=c.toDataURL("image/png");
+      const fsName=`txt${t.id}.png`;
+      stickerFiles.push({fsName,src:png});
+      stickerInputs.push("-loop","1","-i",fsName);
+      const rs=Math.max(0,t.start-segS), re=Math.min(segE-segS,t.end-segS);
+      const inD=Math.min(0.45,(re-rs)/2);
+      let ch=`[${idx}:v]format=rgba`;
+      if(t.animIn!=="none")ch+=`,fade=t=in:st=${rs.toFixed(3)}:d=${inD.toFixed(3)}:alpha=1`;
+      if(t.animOut!=="none")ch+=`,fade=t=out:st=${Math.max(rs,(re-inD)).toFixed(3)}:d=${inD.toFixed(3)}:alpha=1`;
+      ch+=`[tx${i}]`;
+      parts.push(ch);
+      const px=Math.round(t.fx*out.w - c.width/2), py=Math.round(t.fy*out.h - c.height/2);
+      parts.push(`[${last}][tx${i}]overlay=${px}:${py}:enable='between(t,${rs.toFixed(3)},${re.toFixed(3)})'[to${i}]`);
+      last=`to${i}`;
     });
     parts.push(`[${last}]format=yuv420p[v]`);
     return {filterArgs:["-filter_complex",parts.join(";"),"-map","[v]","-map","0:a?"],stickerInputs,stickerFiles};
@@ -1294,17 +1425,19 @@
       const inName="input."+inExt;
       await f.writeFile(inName,await window.FFmpegUtil.fetchFile(currentFile));
       const crf=crfFor();
-      const {filterArgs,stickerInputs,stickerFiles}=buildVideoFilterArgs(out);
-      for(const sf of stickerFiles){
-        const buf=new Uint8Array(await (await fetch(sf.src)).arrayBuffer());
-        await f.writeFile(sf.fsName,buf);
-      }
+      const writtenFs=new Set();
       const codec=["-c:v","libx264","-preset",(speedSel&&speedSel.value)||"ultrafast","-crf",crf,"-c:a","aac","-b:a","192k","-movflags","+faststart"];
       const join = joinMode && segs.length>1;
       const clips=[]; const partNames=[];
       for(let i=0;i<segs.length;i++){
         segIndex=i;
         const [s,e,spd,zm,pvol]=segs[i]; const dur=Math.max(0.05,e-s); const outName=`out_${i}.mp4`;
+        const {filterArgs,stickerInputs,stickerFiles}=buildVideoFilterArgs(out,s,e);
+        for(const sf of stickerFiles){
+          if(writtenFs.has(sf.fsName))continue;
+          const buf=new Uint8Array(await (await fetch(sf.src)).arrayBuffer());
+          await f.writeFile(sf.fsName,buf); writtenFs.add(sf.fsName);
+        }
         let fa=applyAudioChain(filterArgs);
         if(pvol!==undefined&&pvol!==1){
           if(pvol<=0.001){ // mute: cheaper + more reliable than volume=0
@@ -1344,7 +1477,7 @@
         for(const n of partNames){try{await f.deleteFile(n);}catch(_){}}
       }
       try{await f.deleteFile(inName);}catch(_){}
-      for(const sf of stickerFiles){try{await f.deleteFile(sf.fsName);}catch(_){}}
+      for(const nm of writtenFs){try{await f.deleteFile(nm);}catch(_){}}
       renderClips(clips,out); setProg(100,"Done");
     }catch(e){ showErr("Encoding failed: "+((e&&e.message)||e)); }
     finally{ encoding=false; recBadge.classList.remove("on"); exportBtn.disabled=false; exportBtn.textContent="Export portrait clip"; setTimeout(()=>progress.classList.remove("on"),900); }
@@ -1375,6 +1508,16 @@
       ctx.restore();
     }
     drawStickers(out,ctx);
+    // texts on top, with live animation
+    const tt=video.currentTime;
+    texts.forEach(t=>{
+      const st=textAnim(t,tt); if(!st)return;
+      const c=t.__ras&&t.__ras.w===out.w?t.__ras.c:(t.__ras={w:out.w,c:rasterText(t,out)}).c;
+      const w=c.width*st.sc,h=c.height*st.sc;
+      ctx.save(); ctx.globalAlpha=st.a;
+      ctx.drawImage(c, t.fx*out.w - w/2, t.fy*out.h - h/2 + st.dy*(out.h/400), w, h);
+      ctx.restore();
+    });
   }
   function pickMime(){
     const want=fmtSel.value;
@@ -1462,6 +1605,163 @@
   function hideErr(){errBox.classList.remove("on");}
 
   ["dragover","drop"].forEach(ev=>window.addEventListener(ev,e=>{ if(!e.target.closest("#dropzone")) e.preventDefault(); },false));
+
+  // ---- text & titles ----
+  const txtLayer=$("txtLayer"),txtAddBtn=$("txtAdd"),txtCaptionBtn=$("txtCaption"),txtChips=$("txtChips"),txtEditor=$("txtEditor");
+  const txtContent=$("txtContent"),txtFont=$("txtFont"),txtSize=$("txtSize"),txtSizeLbl=$("txtSizeLbl"),txtFontUp=$("txtFontUp");
+  const txtColor=$("txtColor"),txtStroke=$("txtStroke"),txtBg=$("txtBg"),txtStartBtn=$("txtStart"),txtEndBtn=$("txtEnd"),txtTimeLbl=$("txtTimeLbl");
+  const animInSel=$("animIn"),animOutSel=$("animOut"),animLoopSel=$("animLoop"),txtDeleteBtn=$("txtDelete");
+  let texts=[],txtSeq=0,selText=null;
+  const ANIM_D=0.5;
+
+  function newText(preset){
+    const d=video.duration||0;
+    const t={id:++txtSeq,content:preset?"Your caption":"Your text",font:"Inter",sizeF:preset?0.045:0.06,
+      color:"#ffffff",stroke:true,bg:!!preset,fx:preset?0.5:0.5,fy:preset?0.85:0.4,
+      start:preset?video.currentTime:0,end:preset?Math.min(d,video.currentTime+3):Infinity,
+      animIn:"fade",animOut:"fade",loop:"none"};
+    const el=document.createElement("div"); el.className="txtel"; t.el=el; txtLayer.appendChild(el);
+    el.addEventListener("pointerdown",ev=>{
+      ev.stopPropagation(); selectText(t);
+      const fr=frameRect(); const sx=ev.clientX,sy=ev.clientY,ofx=t.fx,ofy=t.fy;
+      el.setPointerCapture(ev.pointerId);
+      const mv=e2=>{t.fx=clamp(ofx+(e2.clientX-sx)/fr.w,0,1);t.fy=clamp(ofy+(e2.clientY-sy)/fr.h,0,1);};
+      const up=()=>{el.removeEventListener("pointermove",mv);el.removeEventListener("pointerup",up);};
+      el.addEventListener("pointermove",mv); el.addEventListener("pointerup",up);
+    });
+    texts.push(t); selectText(t); renderChips();
+    return t;
+  }
+  txtAddBtn.addEventListener("click",()=>{ if(video.duration)newText(false); });
+  txtCaptionBtn.addEventListener("click",()=>{ if(video.duration)newText(true); });
+
+  function selectText(t){
+    selText=t; texts.forEach(x=>x.el.classList.toggle("sel",x===t));
+    txtEditor.classList.toggle("hidden",!t); renderChips();
+    if(!t)return;
+    txtContent.value=t.content; txtFont.value=t.font; txtSize.value=Math.round(t.sizeF*100); txtSizeLbl.textContent=txtSize.value+"%";
+    txtColor.value=t.color; txtStroke.value=t.stroke?"on":"off"; txtBg.value=t.bg?"on":"off";
+    animInSel.value=t.animIn; animOutSel.value=t.animOut; animLoopSel.value=t.loop;
+    refreshTimeLbl();
+  }
+  function renderChips(){
+    txtChips.innerHTML="";
+    texts.forEach(t=>{
+      const c=document.createElement("span"); c.className="txtchip"+(t===selText?" sel":"");
+      c.textContent=t.content.split("\n")[0]||"(empty)";
+      c.addEventListener("click",()=>selectText(t)); txtChips.appendChild(c);
+    });
+  }
+  function refreshTimeLbl(){
+    if(!selText)return;
+    txtTimeLbl.textContent=(selText.end===Infinity&&selText.start<=0)?"Shows for the whole clip."
+      :`Shows ${fmt(selText.start)} \u2192 ${selText.end===Infinity?"end":fmt(selText.end)}.`;
+  }
+  txtContent.addEventListener("input",()=>{if(selText){selText.content=txtContent.value;renderChips();}});
+  txtFont.addEventListener("change",()=>{if(selText)selText.font=txtFont.value;});
+  txtSize.addEventListener("input",()=>{txtSizeLbl.textContent=txtSize.value+"%";if(selText)selText.sizeF=(+txtSize.value)/100;});
+  txtColor.addEventListener("input",()=>{if(selText)selText.color=txtColor.value;});
+  txtStroke.addEventListener("change",()=>{if(selText)selText.stroke=txtStroke.value==="on";});
+  txtBg.addEventListener("change",()=>{if(selText)selText.bg=txtBg.value==="on";});
+  txtStartBtn.addEventListener("click",()=>{if(selText){selText.start=video.currentTime;if(selText.end<=selText.start)selText.end=Infinity;refreshTimeLbl();}});
+  txtEndBtn.addEventListener("click",()=>{if(selText){selText.end=Math.max(video.currentTime,selText.start+0.2);refreshTimeLbl();}});
+  animInSel.addEventListener("change",()=>{if(selText)selText.animIn=animInSel.value;});
+  animOutSel.addEventListener("change",()=>{if(selText)selText.animOut=animOutSel.value;});
+  animLoopSel.addEventListener("change",()=>{if(selText)selText.loop=animLoopSel.value;});
+  txtDeleteBtn.addEventListener("click",()=>{
+    if(!selText)return; selText.el.remove(); texts=texts.filter(x=>x!==selText); selText=null;
+    txtEditor.classList.add("hidden"); renderChips();
+  });
+  txtFontUp.addEventListener("change",async e=>{
+    const f=e.target.files[0]; if(!f)return;
+    const name=f.name.replace(/\.[^.]+$/,"").replace(/[^\w -]/g,"")||"Custom";
+    try{
+      const face=new FontFace(name,await f.arrayBuffer()); await face.load(); document.fonts.add(face);
+      const opt=document.createElement("option"); opt.value=name; opt.textContent=name+" \u00B7 custom"; txtFont.appendChild(opt);
+      txtFont.value=name; if(selText)selText.font=name;
+    }catch(_){ showErr("Couldn't load that font file."); }
+    txtFontUp.value="";
+  });
+
+  // animation state at time t (relative to element window)
+  function textAnim(t,el){
+    const dur=(el.end===Infinity?(video.duration||1e9):el.end)-el.start;
+    const rel=t-el.start;
+    if(rel<0||rel>dur)return null;
+    let a=1,dx=0,dy=0,sc=1;
+    if(el.animIn!=="none"&&rel<ANIM_D){const p=rel/ANIM_D;
+      if(el.animIn==="fade")a=p; else if(el.animIn==="up"){a=p;dy=(1-p)*0.06;} else if(el.animIn==="pop"){a=p;sc=0.6+0.4*p;}}
+    const toEnd=dur-rel;
+    if(el.animOut!=="none"&&toEnd<ANIM_D&&isFinite(dur)){const p=toEnd/ANIM_D;
+      if(el.animOut==="fade")a*=p; else if(el.animOut==="down"){a*=p;dy+=(1-p)*0.06;}}
+    if(el.loop==="pulse")sc*=1+0.05*Math.sin(rel*4);
+    return{a,dx,dy,sc};
+  }
+  // live preview of text elements (DOM styled per frame)
+  function tickTexts(){
+    const fr=frameRect(); const t=video.currentTime;
+    texts.forEach(el=>{
+      const st=textAnim(t,el);
+      if(!st||!fr.w){el.el.style.display="none";return;}
+      el.el.style.display="block";
+      const px=el.sizeF*fr.w;
+      el.el.textContent=el.content;
+      el.el.style.font=`700 ${px}px "${el.font}", sans-serif`;
+      el.el.style.color=el.color;
+      el.el.style.webkitTextStroke=el.stroke?`${Math.max(1,px*0.05)}px rgba(0,0,0,.85)`:"0";
+      el.el.style.background=el.bg?"rgba(0,0,0,.55)":"transparent";
+      el.el.style.borderRadius=el.bg?px*0.3+"px":"0";
+      el.el.style.padding=el.bg?`${px*0.15}px ${px*0.35}px`:"2px 4px";
+      el.el.style.opacity=st.a;
+      el.el.style.left=(fr.left+el.fx*fr.w)+"px";
+      el.el.style.top=(fr.top+(el.fy+st.dy)*fr.h)+"px";
+      el.el.style.transform=`translate(-50%,-50%) scale(${st.sc})`;
+    });
+    requestAnimationFrame(tickTexts);
+  }
+  requestAnimationFrame(tickTexts);
+
+  // draw texts onto an export canvas frame (Fast engine)
+  function drawTexts(out,ctx,tNow){
+    texts.forEach(el=>{
+      const st=textAnim(tNow,el); if(!st)return;
+      const px=el.sizeF*out.w;
+      ctx.save(); ctx.globalAlpha=st.a;
+      ctx.font=`700 ${px}px "${el.font}", sans-serif`;
+      ctx.textAlign="center"; ctx.textBaseline="middle";
+      const cx=el.fx*out.w, cy=(el.fy+st.dy)*out.h;
+      ctx.translate(cx,cy); ctx.scale(st.sc,st.sc);
+      const lines=el.content.split("\n"); const lh=px*1.15;
+      if(el.bg){
+        let mw=0; lines.forEach(l=>{mw=Math.max(mw,ctx.measureText(l).width);});
+        const bw=mw+px*0.7, bh=lines.length*lh+px*0.3;
+        ctx.fillStyle="rgba(0,0,0,.55)";
+        ctx.beginPath(); ctx.roundRect(-bw/2,-bh/2,bw,bh,px*0.3); ctx.fill();
+      }
+      lines.forEach((l,i)=>{
+        const y=(i-(lines.length-1)/2)*lh;
+        if(el.stroke){ ctx.lineWidth=Math.max(1.5,px*0.1); ctx.strokeStyle="rgba(0,0,0,.85)"; ctx.strokeText(l,0,y); }
+        ctx.fillStyle=el.color; ctx.fillText(l,0,y);
+      });
+      ctx.restore();
+    });
+  }
+  // render one text element to a transparent PNG for the ffmpeg engine
+  function renderTextPNG(el,out){
+    const px=el.sizeF*out.w; const c=document.createElement("canvas"); const cc=c.getContext("2d");
+    cc.font=`700 ${px}px "${el.font}", sans-serif`;
+    const lines=el.content.split("\n"); const lh=px*1.15;
+    let mw=0; lines.forEach(l=>{mw=Math.max(mw,cc.measureText(l).width);});
+    const pad=px*0.4; c.width=Math.max(2,Math.ceil(mw+pad*2)); c.height=Math.max(2,Math.ceil(lines.length*lh+pad*2));
+    cc.font=`700 ${px}px "${el.font}", sans-serif`; cc.textAlign="center"; cc.textBaseline="middle";
+    if(el.bg){cc.fillStyle="rgba(0,0,0,.55)";cc.beginPath();cc.roundRect(px*0.05,px*0.05,c.width-px*0.1,c.height-px*0.1,px*0.3);cc.fill();}
+    lines.forEach((l,i)=>{
+      const y=c.height/2+(i-(lines.length-1)/2)*lh;
+      if(el.stroke){cc.lineWidth=Math.max(1.5,px*0.1);cc.strokeStyle="rgba(0,0,0,.85)";cc.strokeText(l,c.width/2,y);}
+      cc.fillStyle=el.color; cc.fillText(l,c.width/2,y);
+    });
+    return {url:c.toDataURL("image/png"),w:c.width,h:c.height};
+  }
 
   // ---- overlay / PIP / chroma key ----
   const ovFileIn=$("ovFile"),ovNameEl=$("ovName"),ovOpts=$("ovOpts"),ovSize=$("ovSize"),ovOpac=$("ovOpac"),
