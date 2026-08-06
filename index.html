@@ -853,7 +853,7 @@
   video.addEventListener("pause",()=>{playing=false;if(!recording)playIco.innerHTML='<path d="M8 5v14l11-7z"/>';drawPreview();});
   video.addEventListener("seeked",drawPreview);
   video.addEventListener("loadeddata",()=>{sizePreview();drawPreview();requestAnimationFrame(layout);});
-  video.addEventListener("timeupdate",()=>{if(recording)return;previewSkip();if(video.duration)seek.value=String(Math.round(video.currentTime/video.duration*1000));timeEl.textContent=`${fmt(video.currentTime)} / ${fmt(video.duration||0)}`;renderPlayhead();updateTextPreview();});
+  video.addEventListener("timeupdate",()=>{previewSkip();if(recording)return;if(video.duration)seek.value=String(Math.round(video.currentTime/video.duration*1000));timeEl.textContent=`${fmt(video.currentTime)} / ${fmt(video.duration||0)}`;renderPlayhead();updateTextPreview();});
   video.addEventListener("durationchange",()=>{ if(isFinite(video.duration)){ if(!timeline.length){initTimeline();} else { const last=timeline[timeline.length-1]; if(last.end>video.duration)last.end=video.duration; renderTimeline(); } } });
   seek.addEventListener("input",()=>{if(video.duration)video.currentTime=(+seek.value/1000)*video.duration;});
 
@@ -969,7 +969,7 @@
   function buildSegments(){ const segs=keptSegments(); return segs.length?segs:[[0,video.duration||0]]; }
   // preview skips deleted gaps in real time
   function previewSkip(){
-    if(video.paused||recording||!timeline.length)return;
+    if(video.paused||!timeline.length)return;
     const t=video.currentTime, eps=0.02;
     const inKept=timeline.some(s=>t>=s.start-eps&&t<s.end-0.001);
     if(inKept)return;
@@ -1336,7 +1336,10 @@
         }
         if(zm&&zm!=="none")fa=applyZoomToFilter(fa,zm,dur/(spd||1),out);
         if(spd&&spd!==1)fa=applySpeedToFilter(fa,spd);
-        const args=["-ss",s.toFixed(3),"-i",inName,...stickerInputs,"-t",dur.toFixed(3),...fa,...codec];
+        // -t BEFORE -i trims the source itself. (As an output option it limits output
+        // length instead, so setpts speed-ups would read past the cut into deleted footage.)
+        const outDur=dur/(spd||1);
+        const args=["-ss",s.toFixed(3),"-t",dur.toFixed(3),"-i",inName,...stickerInputs,...fa,...codec,"-t",outDur.toFixed(3)];
         if(+fpsSel.value)args.push("-r",String(+fpsSel.value));
         args.push(outName);
         await f.exec(args);
